@@ -12,11 +12,11 @@ from PySide6.QtCore import Qt, QDateTime, QEvent, QDate
 from PySide6.QtGui import QColor, QPainter, QFont
 from PySide6.QtCharts import QChart, QChartView, QPieSeries, QLineSeries, QDateTimeAxis, QValueAxis, QScatterSeries, QBarSeries, QBarSet, QBarCategoryAxis
 
-def generate_mock_os(count, start_date=date(2023, 1, 1)):
+def generate_mock_os(count, start_date=date(2018, 1, 1)):
     os_list = []
     current_date = start_date
     for _ in range(count):
-        interval = random.randint(30, 90)
+        interval = random.randint(15, 60)
         current_date += timedelta(days=interval)
         if current_date > date.today() + timedelta(days=30): break
         os_list.append({
@@ -43,6 +43,8 @@ DARK_THEME_QSS = """
 QMainWindow, QWidget { background-color: #0F172A; color: #F8FAFC; font-family: 'Inter', 'Segoe UI', Arial; }
 QGroupBox { border: 1px solid #1E293B; border-radius: 6px; margin-top: 15px; font-weight: bold; padding-top: 25px; }
 QGroupBox::title { subcontrol-origin: margin; subcontrol-position: top left; padding: 0 5px; left: 10px; color: #94A3B8; }
+QCheckBox { color: #F8FAFC; spacing: 5px; }
+QCheckBox::indicator { width: 15px; height: 15px; }
 QLineEdit, QComboBox, QDateEdit, QSpinBox { background-color: #1E293B; border: 1px solid #334155; border-radius: 4px; padding: 6px; color: #F8FAFC; }
 QPushButton { background-color: #2563EB; color: white; border-radius: 4px; padding: 8px 16px; font-weight: 600; border: none; }
 QPushButton:hover { background-color: #3B82F6; }
@@ -116,16 +118,34 @@ class HospitalDashboard(QMainWindow):
         # OS History with Overlay Filter
         chart_container = QGroupBox("Histórico de Emissão de OS")
         chart_vbox = QVBoxLayout(chart_container)
+        self.os_mode_combo = QComboBox()
+        self.os_mode_combo.addItems(["Filtro de Data", "Comparação de Anos"])
+        self.os_mode_combo.currentIndexChanged.connect(self.update_global_chart)
+        chart_vbox.addWidget(self.os_mode_combo)
+        
         self.global_chart_view = QChartView()
         self.global_chart_view.setRenderHint(QPainter.Antialiasing)
         self.global_chart_view.setStyleSheet("background: transparent;")
         self.global_chart_view.setFixedHeight(230)
         chart_vbox.addWidget(self.global_chart_view)
+
+        # Container for checkboxes below the chart
+        self.years_widget = QWidget()
+        years_layout = QHBoxLayout(self.years_widget)
+        years_layout.setContentsMargins(0, 0, 0, 0)
+        self.year_checkboxes = {}
+        for y in range(2018, 2025):
+            cb = QCheckBox(str(y))
+            cb.setChecked(True)
+            cb.stateChanged.connect(self.update_global_chart)
+            years_layout.addWidget(cb)
+            self.year_checkboxes[y] = cb
+        chart_vbox.addWidget(self.years_widget)
         
         filter_widget = QWidget(chart_container)
         filter_layout = QHBoxLayout(filter_widget)
         filter_layout.setContentsMargins(5, 0, 5, 0); filter_layout.setSpacing(8)
-        self.chart_start_date = QDateEdit(QDate(2023, 1, 1)); self.chart_start_date.setCalendarPopup(True)
+        self.chart_start_date = QDateEdit(QDate(2018, 1, 1)); self.chart_start_date.setCalendarPopup(True)
         self.chart_start_date.setFixedWidth(100); self.chart_start_date.setStyleSheet("font-size: 10px;")
         self.chart_start_date.dateChanged.connect(self.update_global_chart)
         self.chart_end_date = QDateEdit(QDate.currentDate()); self.chart_end_date.setCalendarPopup(True)
@@ -204,22 +224,79 @@ class HospitalDashboard(QMainWindow):
         self.risk_chart_view.setChart(chart)
 
     def update_global_chart(self):
+        mode = self.os_mode_combo.currentText()
         start_dt = self.chart_start_date.date().toPython(); end_dt = self.chart_end_date.date().toPython()
-        os_counts = {}
-        for equip in MOCK_EQUIPMENT:
-            for os in equip["os"]:
-                dt = datetime.strptime(os["data"], "%Y-%m-%d").date()
-                if start_dt <= dt <= end_dt: key = dt.strftime("%Y-%m"); os_counts[key] = os_counts.get(key, 0) + 1
-        series = QLineSeries(); series.setColor(QColor("#10B981")); series.setPointsVisible(True)
-        sorted_keys = sorted(os_counts.keys())
-        for key in sorted_keys:
-            dt = datetime.strptime(key, "%Y-%m"); series.append(QDateTime(dt).toMSecsSinceEpoch(), os_counts[key])
-        chart = QChart(); chart.addSeries(series); chart.setBackgroundBrush(QColor("#1E293B")); chart.setTitleBrush(QColor("#F8FAFC"))
-        axis_x = QDateTimeAxis(); axis_x.setFormat("MMM yy"); axis_x.setLabelsColor(QColor("#CBD5E1"))
-        chart.addAxis(axis_x, Qt.AlignBottom); series.attachAxis(axis_x)
-        axis_y = QValueAxis(); axis_y.setLabelsColor(QColor("#CBD5E1")); axis_y.setLabelFormat("%d")
-        max_val = max(os_counts.values()) if os_counts else 10
-        axis_y.setRange(0, max_val + 2); chart.addAxis(axis_y, Qt.AlignLeft); series.attachAxis(axis_y)
+        chart = QChart(); chart.setBackgroundBrush(QColor("#1E293B")); chart.setTitleBrush(QColor("#F8FAFC"))
+        selected_years = [y for y, cb in self.year_checkboxes.items() if cb.isChecked()]
+        colors = ["#10B981", "#3B82F6", "#F59E0B", "#EF4444", "#8B5CF6", "#EC4899", "#14B8A6"]
+        
+        if mode == "Filtro de Data":
+            self.years_widget.setVisible(False)
+            os_counts = {}
+            for equip in MOCK_EQUIPMENT:
+                for os in equip["os"]:
+                    dt = datetime.strptime(os["data"], "%Y-%m-%d").date()
+                    if start_dt <= dt <= end_dt:
+                        key = dt.strftime("%Y-%m"); os_counts[key] = os_counts.get(key, 0) + 1
+            series = QLineSeries(); series.setName("Emissões OS"); series.setColor(QColor("#10B981")); series.setPointsVisible(True)
+            sorted_keys = sorted(os_counts.keys())
+            for key in sorted_keys:
+                dt = datetime.strptime(key, "%Y-%m"); series.append(QDateTime(dt).toMSecsSinceEpoch(), os_counts[key])
+            chart.addSeries(series)
+            axis_x = QDateTimeAxis(); axis_x.setFormat("MMM yy"); axis_x.setLabelsColor(QColor("#CBD5E1"))
+            chart.addAxis(axis_x, Qt.AlignBottom); series.attachAxis(axis_x)
+            axis_y = QValueAxis(); axis_y.setLabelsColor(QColor("#CBD5E1")); axis_y.setLabelFormat("%d")
+            max_val = max(os_counts.values()) if os_counts else 10
+            axis_y.setRange(0, max_val + 2); chart.addAxis(axis_y, Qt.AlignLeft); series.attachAxis(axis_y)
+            chart.legend().setVisible(False)
+        
+        else:
+            self.years_widget.setVisible(True)
+            year_data = {y: {m: 0 for m in range(1, 13)} for y in selected_years}
+            for equip in MOCK_EQUIPMENT:
+                for os in equip["os"]:
+                    dt = datetime.strptime(os["data"], "%Y-%m-%d").date()
+                    if dt.year in selected_years: year_data[dt.year][dt.month] += 1
+            
+            axis_x = QBarCategoryAxis()
+            axis_x.append(["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"])
+            axis_x.setLabelsColor(QColor("#CBD5E1"))
+            chart.addAxis(axis_x, Qt.AlignBottom)
+            
+            axis_y = QValueAxis(); axis_y.setLabelsColor(QColor("#CBD5E1")); axis_y.setLabelFormat("%d")
+            max_val = 5
+            
+            averages = {m: 0 for m in range(1, 13)}
+            
+            for i, year in enumerate(selected_years):
+                series = QLineSeries(); series.setName(str(year))
+                series.setColor(QColor(colors[i % len(colors)])); series.setPointsVisible(True)
+                for month in range(1, 13):
+                    val = year_data[year][month]
+                    series.append(month - 1, val)
+                    averages[month] += val
+                    if val > max_val: max_val = val
+                chart.addSeries(series); series.attachAxis(axis_x)
+            
+            if selected_years:
+                avg_series = QLineSeries(); avg_series.setName("Média")
+                avg_series.setColor(QColor("#F8FAFC")); avg_series.setPointsVisible(True)
+                pen = avg_series.pen(); pen.setStyle(Qt.DashLine); pen.setWidth(2); avg_series.setPen(pen)
+                for month in range(1, 13):
+                    avg_val = averages[month] / len(selected_years)
+                    avg_series.append(month - 1, avg_val)
+                    if avg_val > max_val: max_val = avg_val
+                chart.addSeries(avg_series); avg_series.attachAxis(axis_x)
+            
+            chart.addAxis(axis_y, Qt.AlignLeft)
+            for series in chart.series():
+                series.attachAxis(axis_y)
+            axis_y.setRange(0, max_val + 2)
+            
+            chart.legend().setVisible(True)
+            chart.legend().setAlignment(Qt.AlignBottom)
+            chart.legend().setLabelColor(QColor("#F8FAFC"))
+        
         self.global_chart_view.setChart(chart)
 
     def populate_top5(self):

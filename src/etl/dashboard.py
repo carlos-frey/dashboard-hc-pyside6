@@ -7,7 +7,7 @@ from PySide6.QtWidgets import (
     QLabel, QTableWidget, QTableWidgetItem, QHeaderView, QFrame,
     QLineEdit, QComboBox, QPushButton, QCheckBox, QFormLayout, 
     QGroupBox, QScrollArea, QFileDialog, QMessageBox, QDialog, QDateEdit, QSpinBox,
-    QGraphicsLineItem, QTabWidget
+    QGraphicsLineItem, QTabWidget, QStackedWidget
 )
 from PySide6.QtCore import Qt, QDateTime, QEvent, QDate
 from PySide6.QtGui import QColor, QPainter, QFont, QPen
@@ -118,41 +118,79 @@ class HospitalDashboard(QMainWindow):
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.NoFrame)
         self.setCentralWidget(scroll)
+        
+        wrapper = QWidget()
+        wrapper_layout = QHBoxLayout(wrapper)
+        wrapper_layout.setContentsMargins(0, 0, 0, 0)
+        
         container = QWidget()
+        container.setMaximumWidth(1600)
+        
+        wrapper_layout.addStretch()
+        wrapper_layout.addWidget(container, stretch=1)
+        wrapper_layout.addStretch()
+        
         self.main_layout = QVBoxLayout(container)
-        self.main_layout.setContentsMargins(30, 30, 30, 30)
-        self.main_layout.setSpacing(20)
-        scroll.setWidget(container)
+        self.main_layout.setContentsMargins(24, 24, 24, 24)
+        self.main_layout.setSpacing(24)
+        scroll.setWidget(wrapper)
         
         header_layout = QHBoxLayout()
         header = QLabel("Dashboard de Engenharia Clínica")
-        header.setStyleSheet("font-size: 26px; font-weight: 700; color: #F8FAFC;")
+        header.setStyleSheet("font-size: 30px; font-weight: 700; color: #F8FAFC;")
         header_layout.addWidget(header)
         header_layout.addStretch()
+        
+        # Tabs in header
+        self.btn_analysis = QPushButton("Análise")
+        self.btn_data = QPushButton("Dados")
+        tab_style = """
+            QPushButton { padding: 8px 16px; border-radius: 6px; background: transparent; color: #94A3B8; font-weight: bold; font-size: 16px; }
+            QPushButton:checked { background: #38BDF8; color: #0F172A; }
+        """
+        self.btn_analysis.setStyleSheet(tab_style); self.btn_data.setStyleSheet(tab_style)
+        self.btn_analysis.setCheckable(True); self.btn_data.setCheckable(True)
+        self.btn_analysis.setChecked(True)
+        
+        self.btn_analysis.clicked.connect(lambda: self.switch_tab(0))
+        self.btn_data.clicked.connect(lambda: self.switch_tab(1))
+        
+        header_layout.addWidget(self.btn_analysis)
+        header_layout.addWidget(self.btn_data)
+        
         self.main_layout.addLayout(header_layout)
         
         self.active_years = set(range(2018, 2025))
         if not hasattr(self, '_overlays'): self._overlays = []
         
-        self.tabs = QTabWidget()
+        self.tabs = QStackedWidget()
         self.main_layout.addWidget(self.tabs)
         
         self.analysis_tab = QWidget()
         self.analysis_layout = QVBoxLayout(self.analysis_tab)
-        self.tabs.addTab(self.analysis_tab, "Análise")
+        self.analysis_layout.setContentsMargins(0,0,0,0)
+        self.analysis_layout.setSpacing(24)
+        self.tabs.addWidget(self.analysis_tab)
         
         self.data_tab = QWidget()
         self.data_layout = QVBoxLayout(self.data_tab)
-        self.tabs.addTab(self.data_tab, "Dados")
+        self.data_layout.setContentsMargins(0,0,0,0)
+        self.tabs.addWidget(self.data_tab)
         
         self.setup_kpi_row()
         self.setup_insights_row()
+        self.setup_history_row()
         self.setup_cost_analysis_row()
         self.setup_list_section()
 
+    def switch_tab(self, index):
+        self.tabs.setCurrentIndex(index)
+        self.btn_analysis.setChecked(index == 0)
+        self.btn_data.setChecked(index == 1)
+
     def setup_kpi_row(self):
         kpi_layout = QHBoxLayout()
-        kpi_layout.setSpacing(25)
+        kpi_layout.setSpacing(24)
         
         total_equip = len(MOCK_EQUIPMENT)
         total_os = sum(len(equip.get("os", [])) for equip in MOCK_EQUIPMENT)
@@ -161,9 +199,9 @@ class HospitalDashboard(QMainWindow):
         
         def create_kpi_card(title, value):
             card = QFrame()
-            card.setStyleSheet("QFrame { background-color: #1E293B; border-radius: 8px; border: 1px solid #334155; }")
+            card.setStyleSheet("QFrame { background-color: #1E293B; border-radius: 12px; border: 1px solid #334155; }")
             layout = QVBoxLayout(card)
-            layout.setContentsMargins(20, 20, 20, 20)
+            layout.setContentsMargins(24, 24, 24, 24)
             lbl_title = QLabel(title)
             lbl_title.setStyleSheet("color: #94A3B8; font-size: 14px; font-weight: bold; border: none;")
             lbl_title.setAlignment(Qt.AlignCenter)
@@ -174,23 +212,26 @@ class HospitalDashboard(QMainWindow):
             layout.addWidget(lbl_val)
             return card
 
-        kpi_layout.addWidget(create_kpi_card("Total de Equipamentos", total_equip))
-        kpi_layout.addWidget(create_kpi_card("Total de OS Emitidas", total_os))
-        kpi_layout.addWidget(create_kpi_card("Total Gasto em OS", total_cost_str))
+        kpi_layout.addWidget(create_kpi_card("Total de Equipamentos", total_equip), 1)
+        kpi_layout.addWidget(create_kpi_card("Total de OS Emitidas", total_os), 1)
+        kpi_layout.addWidget(create_kpi_card("Total Gasto em OS", total_cost_str), 1)
         
         self.analysis_layout.addLayout(kpi_layout)
 
     def setup_insights_row(self):
         layout = QHBoxLayout()
-        layout.setSpacing(25)
+        layout.setSpacing(24)
         
-        # Age Distribution with Overlay Filter
+        # Age Distribution
         age_group = QGroupBox("Distribuição por Idade")
+        age_group.setStyleSheet("QGroupBox { border: 1px solid #334155; border-radius: 12px; padding-top: 24px; font-weight: bold; }")
         age_vbox = QVBoxLayout(age_group)
+        age_vbox.setContentsMargins(24, 24, 24, 24)
+        
         self.age_donut_view = QChartView()
         self.age_donut_view.setRenderHint(QPainter.Antialiasing)
         self.age_donut_view.setStyleSheet("background: transparent;")
-        self.age_donut_view.setFixedHeight(230)
+        self.age_donut_view.setFixedHeight(280)
         age_vbox.addWidget(self.age_donut_view)
         
         age_overlay = QWidget(age_group)
@@ -213,39 +254,49 @@ class HospitalDashboard(QMainWindow):
         self.update_age_donut()
         layout.addWidget(age_group, 1)
 
-        # Risk / Priorities Row (Now on the left of OS History)
+        # Risk / Priorities Row (2/3 width)
         top5_group = QGroupBox("Prioridades de Substituição")
+        top5_group.setStyleSheet("QGroupBox { border: 1px solid #334155; border-radius: 12px; padding-top: 24px; font-weight: bold; }")
         top5_layout = QVBoxLayout(top5_group)
+        top5_layout.setContentsMargins(24, 24, 24, 24)
+        top5_layout.setSpacing(12)
+        
         self.top5_chart_view = QChartView()
         self.top5_chart_view.setRenderHint(QPainter.Antialiasing)
         self.top5_chart_view.setStyleSheet("background: transparent;")
-        self.top5_chart_view.setFixedHeight(230)
+        self.top5_chart_view.setFixedHeight(280)
         self.populate_top5()
         top5_layout.addWidget(self.top5_chart_view)
-        # Increased width logically via layout stretch factor (from 1 to 2)
         layout.addWidget(top5_group, 2)
         
-        # OS History
+        self.analysis_layout.addLayout(layout)
+
+    def setup_history_row(self):
+        # OS History (100% width)
         chart_container = QGroupBox("Histórico de Emissão de OS")
+        chart_container.setStyleSheet("QGroupBox { border: 1px solid #334155; border-radius: 12px; padding-top: 24px; font-weight: bold; }")
         chart_vbox = QVBoxLayout(chart_container)
+        chart_vbox.setContentsMargins(24, 24, 24, 24)
         
         self.global_chart_view = CrosshairChartView()
         self.global_chart_view.setRenderHint(QPainter.Antialiasing)
         self.global_chart_view.setStyleSheet("background: transparent;")
-        self.global_chart_view.setFixedHeight(230)
+        self.global_chart_view.setFixedHeight(300)
         chart_vbox.addWidget(self.global_chart_view)
         
         self.update_global_chart()
-        layout.addWidget(chart_container, 2)
-        
-        self.analysis_layout.addLayout(layout)
+        self.analysis_layout.addWidget(chart_container)
 
     def setup_cost_analysis_row(self):
         layout = QHBoxLayout()
-        layout.setSpacing(25)
+        layout.setSpacing(24)
+        
+        group_style = "QGroupBox { border: 1px solid #334155; border-radius: 12px; padding-top: 24px; font-weight: bold; }"
 
         evol_group = QGroupBox("Evolução do Custo Total por Ano")
+        evol_group.setStyleSheet(group_style)
         evol_layout = QVBoxLayout(evol_group)
+        evol_layout.setContentsMargins(24, 24, 24, 24)
         self.cost_evol_chart_view = QChartView()
         self.cost_evol_chart_view.setRenderHint(QPainter.Antialiasing)
         self.cost_evol_chart_view.setStyleSheet("background: transparent;")
@@ -254,7 +305,9 @@ class HospitalDashboard(QMainWindow):
         layout.addWidget(evol_group, 1)
 
         top10_group = QGroupBox("Top 10 Equipamentos Custo")
+        top10_group.setStyleSheet(group_style)
         top10_layout = QVBoxLayout(top10_group)
+        top10_layout.setContentsMargins(24, 24, 24, 24)
         self.top10_chart_view = QChartView()
         self.top10_chart_view.setRenderHint(QPainter.Antialiasing)
         self.top10_chart_view.setStyleSheet("background: transparent;")
@@ -263,7 +316,9 @@ class HospitalDashboard(QMainWindow):
         layout.addWidget(top10_group, 1)
 
         sector_group = QGroupBox("Custos por Setor (Top 10)")
+        sector_group.setStyleSheet(group_style)
         sector_layout = QVBoxLayout(sector_group)
+        sector_layout.setContentsMargins(24, 24, 24, 24)
         self.sector_chart_view = QChartView()
         self.sector_chart_view.setRenderHint(QPainter.Antialiasing)
         self.sector_chart_view.setStyleSheet("background: transparent;")
@@ -294,6 +349,7 @@ class HospitalDashboard(QMainWindow):
 
         # 1. Evolution Chart
         chart_evol = QChart()
+        chart_evol.setAnimationOptions(QChart.SeriesAnimations)
         chart_evol.setBackgroundBrush(QColor("#1E293B"))
         chart_evol.setTitleBrush(QColor("#F8FAFC"))
         series_evol = QLineSeries()
@@ -335,6 +391,7 @@ class HospitalDashboard(QMainWindow):
         series_bar.append(bar_set)
         
         chart_top10 = QChart()
+        chart_top10.setAnimationOptions(QChart.SeriesAnimations)
         chart_top10.setBackgroundBrush(QColor("#1E293B"))
         chart_top10.addSeries(series_bar)
         
@@ -367,6 +424,7 @@ class HospitalDashboard(QMainWindow):
             slice_.setLabelColor(QColor("#CBD5E1"))
             
         chart_sec = QChart()
+        chart_sec.setAnimationOptions(QChart.SeriesAnimations)
         chart_sec.setBackgroundBrush(QColor("#1E293B"))
         chart_sec.addSeries(series_sec)
         chart_sec.legend().setAlignment(Qt.AlignBottom)
@@ -384,7 +442,7 @@ class HospitalDashboard(QMainWindow):
         s1 = series.append(f"≥ {threshold} Anos ({over} - {pct_over:.1f}%)", over); s1.setBrush(QColor("#475569"))
         s2 = series.append(f"< {threshold} Anos ({under} - {pct_under:.1f}%)", under); s2.setBrush(QColor("#2563EB"))
         for slice in series.slices(): slice.setLabelVisible(True); slice.setLabelColor(QColor("#CBD5E1"))
-        chart = QChart(); chart.addSeries(series); chart.setTitle(f"Corte: {threshold} anos")
+        chart = QChart(); chart.setAnimationOptions(QChart.SeriesAnimations); chart.addSeries(series); chart.setTitle(f"Corte: {threshold} anos")
         chart.setBackgroundBrush(QColor("#1E293B")); chart.setTitleBrush(QColor("#F8FAFC"))
         chart.legend().setAlignment(Qt.AlignBottom); chart.legend().setLabelColor(QColor("#F8FAFC"))
         self.age_donut_view.setChart(chart)
@@ -403,7 +461,7 @@ class HospitalDashboard(QMainWindow):
                 pass
 
     def update_global_chart(self):
-        chart = QChart(); chart.setBackgroundBrush(QColor("#1E293B")); chart.setTitleBrush(QColor("#F8FAFC"))
+        chart = QChart(); chart.setAnimationOptions(QChart.SeriesAnimations); chart.setBackgroundBrush(QColor("#1E293B")); chart.setTitleBrush(QColor("#F8FAFC"))
         colors = ["#10B981", "#3B82F6", "#F59E0B", "#EF4444", "#8B5CF6", "#EC4899", "#14B8A6"]
         
         all_years = list(range(2018, 2025))
@@ -495,6 +553,7 @@ class HospitalDashboard(QMainWindow):
         series.append(bar_set)
         
         chart = QChart()
+        chart.setAnimationOptions(QChart.SeriesAnimations)
         chart.setBackgroundBrush(QColor("#1E293B"))
         chart.addSeries(series)
         chart.legend().setVisible(False)

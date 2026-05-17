@@ -6,11 +6,12 @@ from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QTableWidget, QTableWidgetItem, QHeaderView, QFrame,
     QLineEdit, QComboBox, QPushButton, QCheckBox, QFormLayout, 
-    QGroupBox, QScrollArea, QFileDialog, QMessageBox, QDialog, QDateEdit, QSpinBox
+    QGroupBox, QScrollArea, QFileDialog, QMessageBox, QDialog, QDateEdit, QSpinBox,
+    QGraphicsLineItem, QTabWidget
 )
 from PySide6.QtCore import Qt, QDateTime, QEvent, QDate
-from PySide6.QtGui import QColor, QPainter, QFont
-from PySide6.QtCharts import QChart, QChartView, QPieSeries, QLineSeries, QDateTimeAxis, QValueAxis, QScatterSeries, QBarSeries, QBarSet, QBarCategoryAxis
+from PySide6.QtGui import QColor, QPainter, QFont, QPen
+from PySide6.QtCharts import QChart, QChartView, QPieSeries, QLineSeries, QDateTimeAxis, QValueAxis, QScatterSeries, QBarSeries, QBarSet, QBarCategoryAxis, QHorizontalBarSeries
 
 def generate_mock_os(count, start_date=date(2018, 1, 1)):
     os_list = []
@@ -54,6 +55,60 @@ QTableWidget { background-color: #1E293B; gridline-color: #334155; border: 1px s
 QHeaderView::section { background-color: #334155; color: #F8FAFC; padding: 6px; border: none; font-weight: bold; }
 """
 
+class CrosshairChartView(QChartView):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.setMouseTracking(True)
+        self._h_line = None
+        self._v_line = None
+        self._pinned = False
+
+    def init_lines(self):
+        if not self._h_line and self.scene():
+            self._h_line = QGraphicsLineItem()
+            self._v_line = QGraphicsLineItem()
+            pen = QPen(QColor("#EF4444"))
+            pen.setWidth(1)
+            pen.setStyle(Qt.DashLine)
+            self._h_line.setPen(pen)
+            self._v_line.setPen(pen)
+            self._h_line.setZValue(10)
+            self._v_line.setZValue(10)
+            self.scene().addItem(self._h_line)
+            self.scene().addItem(self._v_line)
+            self._h_line.hide()
+            self._v_line.hide()
+
+    def mousePressEvent(self, event):
+        super().mousePressEvent(event)
+        if event.button() == Qt.LeftButton:
+            chart = self.chart()
+            if chart and chart.plotArea().contains(event.position()):
+                self._pinned = not self._pinned
+
+    def mouseMoveEvent(self, event):
+        super().mouseMoveEvent(event)
+        if self._pinned:
+            return
+        self.init_lines()
+        pos = event.position()
+        chart = self.chart()
+        if chart and self._h_line and chart.plotArea().contains(pos):
+            rect = chart.plotArea()
+            self._h_line.setLine(rect.left(), pos.y(), rect.right(), pos.y())
+            self._v_line.setLine(pos.x(), rect.top(), pos.x(), rect.bottom())
+            self._h_line.show()
+            self._v_line.show()
+        elif self._h_line:
+            self._h_line.hide()
+            self._v_line.hide()
+
+    def leaveEvent(self, event):
+        if self._h_line and not self._pinned:
+            self._h_line.hide()
+            self._v_line.hide()
+        super().leaveEvent(event)
+
 class HospitalDashboard(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -79,10 +134,51 @@ class HospitalDashboard(QMainWindow):
         self.active_years = set(range(2018, 2025))
         if not hasattr(self, '_overlays'): self._overlays = []
         
+        self.tabs = QTabWidget()
+        self.main_layout.addWidget(self.tabs)
+        
+        self.analysis_tab = QWidget()
+        self.analysis_layout = QVBoxLayout(self.analysis_tab)
+        self.tabs.addTab(self.analysis_tab, "Análise")
+        
+        self.data_tab = QWidget()
+        self.data_layout = QVBoxLayout(self.data_tab)
+        self.tabs.addTab(self.data_tab, "Dados")
+        
+        self.setup_kpi_row()
         self.setup_insights_row()
-        self.setup_risk_row()
         self.setup_cost_analysis_row()
         self.setup_list_section()
+
+    def setup_kpi_row(self):
+        kpi_layout = QHBoxLayout()
+        kpi_layout.setSpacing(25)
+        
+        total_equip = len(MOCK_EQUIPMENT)
+        total_os = sum(len(equip.get("os", [])) for equip in MOCK_EQUIPMENT)
+        total_cost = sum(os_data.get("custo", 0) for equip in MOCK_EQUIPMENT for os_data in equip.get("os", []))
+        total_cost_str = f"R$ {total_cost:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+        
+        def create_kpi_card(title, value):
+            card = QFrame()
+            card.setStyleSheet("QFrame { background-color: #1E293B; border-radius: 8px; border: 1px solid #334155; }")
+            layout = QVBoxLayout(card)
+            layout.setContentsMargins(20, 20, 20, 20)
+            lbl_title = QLabel(title)
+            lbl_title.setStyleSheet("color: #94A3B8; font-size: 14px; font-weight: bold; border: none;")
+            lbl_title.setAlignment(Qt.AlignCenter)
+            lbl_val = QLabel(str(value))
+            lbl_val.setStyleSheet("color: #38BDF8; font-size: 36px; font-weight: bold; border: none;")
+            lbl_val.setAlignment(Qt.AlignCenter)
+            layout.addWidget(lbl_title)
+            layout.addWidget(lbl_val)
+            return card
+
+        kpi_layout.addWidget(create_kpi_card("Total de Equipamentos", total_equip))
+        kpi_layout.addWidget(create_kpi_card("Total de OS Emitidas", total_os))
+        kpi_layout.addWidget(create_kpi_card("Total Gasto em OS", total_cost_str))
+        
+        self.analysis_layout.addLayout(kpi_layout)
 
     def setup_insights_row(self):
         layout = QHBoxLayout()
@@ -116,12 +212,24 @@ class HospitalDashboard(QMainWindow):
         age_group.installEventFilter(self)
         self.update_age_donut()
         layout.addWidget(age_group, 1)
+
+        # Risk / Priorities Row (Now on the left of OS History)
+        top5_group = QGroupBox("Prioridades de Substituição")
+        top5_layout = QVBoxLayout(top5_group)
+        self.top5_chart_view = QChartView()
+        self.top5_chart_view.setRenderHint(QPainter.Antialiasing)
+        self.top5_chart_view.setStyleSheet("background: transparent;")
+        self.top5_chart_view.setFixedHeight(230)
+        self.populate_top5()
+        top5_layout.addWidget(self.top5_chart_view)
+        # Increased width logically via layout stretch factor (from 1 to 2)
+        layout.addWidget(top5_group, 2)
         
         # OS History
         chart_container = QGroupBox("Histórico de Emissão de OS")
         chart_vbox = QVBoxLayout(chart_container)
         
-        self.global_chart_view = QChartView()
+        self.global_chart_view = CrosshairChartView()
         self.global_chart_view.setRenderHint(QPainter.Antialiasing)
         self.global_chart_view.setStyleSheet("background: transparent;")
         self.global_chart_view.setFixedHeight(230)
@@ -130,22 +238,7 @@ class HospitalDashboard(QMainWindow):
         self.update_global_chart()
         layout.addWidget(chart_container, 2)
         
-        self.main_layout.addLayout(layout)
-
-    def setup_risk_row(self):
-        layout = QHBoxLayout()
-        layout.setSpacing(25)
-        top5_group = QGroupBox("Prioridades de Substituição (Score Risco)")
-        top5_layout = QVBoxLayout(top5_group)
-        self.top5_table = QTableWidget()
-        self.top5_table.setColumnCount(3)
-        self.top5_table.setHorizontalHeaderLabels(["Modelo", "Setor", "Score"])
-        self.top5_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-        self.top5_table.setFixedHeight(200); self.top5_table.verticalHeader().setVisible(False)
-        self.populate_top5()
-        top5_layout.addWidget(self.top5_table)
-        layout.addWidget(top5_group, 1)
-        self.main_layout.addLayout(layout)
+        self.analysis_layout.addLayout(layout)
 
     def setup_cost_analysis_row(self):
         layout = QHBoxLayout()
@@ -178,7 +271,8 @@ class HospitalDashboard(QMainWindow):
         sector_layout.addWidget(self.sector_chart_view)
         layout.addWidget(sector_group, 1)
 
-        self.main_layout.addLayout(layout)
+        self.analysis_layout.addLayout(layout)
+        self.analysis_layout.addStretch()
         self.update_cost_analysis_charts()
 
     def update_cost_analysis_charts(self):
@@ -322,9 +416,13 @@ class HospitalDashboard(QMainWindow):
         axis_x = QBarCategoryAxis()
         axis_x.append(["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"])
         axis_x.setLabelsColor(QColor("#CBD5E1"))
+        axis_x.setGridLineVisible(True)
+        axis_x.setGridLineColor(QColor("#334155"))
         chart.addAxis(axis_x, Qt.AlignBottom)
         
         axis_y = QValueAxis(); axis_y.setLabelsColor(QColor("#CBD5E1")); axis_y.setLabelFormat("%d")
+        axis_y.setGridLineVisible(True)
+        axis_y.setGridLineColor(QColor("#334155"))
         max_val = 5
         
         averages = {m: 0 for m in range(1, 13)}
@@ -365,6 +463,7 @@ class HospitalDashboard(QMainWindow):
             if marker.series().name() == "Média":
                 continue
             if not marker.series().isVisible():
+                marker.setVisible(True)
                 label_brush = marker.labelBrush()
                 color = label_brush.color(); color.setAlpha(80)
                 label_brush.setColor(color); marker.setLabelBrush(label_brush)
@@ -382,13 +481,55 @@ class HospitalDashboard(QMainWindow):
 
     def populate_top5(self):
         sorted_items = sorted(MOCK_EQUIPMENT, key=lambda x: x["score"], reverse=True)[:5]
-        self.top5_table.setRowCount(len(sorted_items))
-        for i, item in enumerate(sorted_items):
-            self.top5_table.setItem(i, 0, QTableWidgetItem(item["modelo"]))
-            self.top5_table.setItem(i, 1, QTableWidgetItem(item["setor"]))
-            score_item = QTableWidgetItem(str(item["score"]))
-            score_item.setForeground(QColor("#CF6679") if item["score"] >= 80 else QColor("#FFB74D"))
-            self.top5_table.setItem(i, 2, score_item)
+        
+        series = QHorizontalBarSeries()
+        bar_set = QBarSet("Score")
+        bar_set.setBrush(QColor("#CF6679"))
+        
+        # QHorizontalBarSeries appends from bottom to top on Y axis, so we reverse
+        categories = []
+        for item in reversed(sorted_items):
+            bar_set.append(item["score"])
+            categories.append(item["modelo"])
+            
+        series.append(bar_set)
+        
+        chart = QChart()
+        chart.setBackgroundBrush(QColor("#1E293B"))
+        chart.addSeries(series)
+        chart.legend().setVisible(False)
+        
+        axis_y = QBarCategoryAxis()
+        axis_y.append(categories)
+        axis_y.setLabelsColor(QColor("#CBD5E1"))
+        chart.addAxis(axis_y, Qt.AlignLeft)
+        series.attachAxis(axis_y)
+        
+        axis_x = QValueAxis()
+        axis_x.setLabelsColor(QColor("#CBD5E1"))
+        axis_x.setRange(0, 100)
+        axis_x.setLabelFormat("%.0f")
+        chart.addAxis(axis_x, Qt.AlignBottom)
+        series.attachAxis(axis_x)
+        
+        def show_details(index):
+            # In reversed list, the index corresponds to reversing sorted_items
+            item = list(reversed(sorted_items))[index]
+            dialog = QDialog(self)
+            dialog.setWindowTitle(f"Detalhes - {item['modelo']}")
+            dialog.setStyleSheet("QDialog { background-color: #121212; color: #E0E0E0; } QLabel { color: #E0E0E0; }")
+            dialog.setFixedWidth(250)
+            layout = QFormLayout(dialog)
+            for k, v in item.items():
+                layout.addRow(QLabel(str(k).capitalize() + ":"), QLabel(str(v)))
+            btn = QPushButton("Fechar")
+            btn.clicked.connect(dialog.accept)
+            layout.addWidget(btn)
+            dialog.exec()
+            
+        bar_set.clicked.connect(show_details)
+        
+        self.top5_chart_view.setChart(chart)
 
     def eventFilter(self, obj, event):
         if event.type() == QEvent.Resize:
@@ -409,7 +550,7 @@ class HospitalDashboard(QMainWindow):
         self.main_table.setHorizontalHeaderLabels(["Modelo", "Setor", "Crit.", "Aquisição", "Status"])
         self.main_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.main_table.setFixedHeight(300); self.main_table.verticalHeader().setVisible(False)
-        layout.addWidget(self.main_table); self.apply_filters(); self.main_layout.addWidget(group)
+        layout.addWidget(self.main_table); self.apply_filters(); self.data_layout.addWidget(group)
 
     def apply_filters(self):
         filtered = MOCK_EQUIPMENT

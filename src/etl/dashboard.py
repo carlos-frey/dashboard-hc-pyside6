@@ -114,10 +114,16 @@ class HospitalDashboard(QMainWindow):
         super().__init__()
         self.setWindowTitle("Sistema de Gestão de Equipamentos")
         self.resize(1400, 980)
+        
+        self.root_stack = QStackedWidget()
+        self.setCentralWidget(self.root_stack)
+        
+        self.setup_import_page()
+        
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.NoFrame)
-        self.setCentralWidget(scroll)
+        self.root_stack.addWidget(scroll)
         
         wrapper = QWidget()
         wrapper_layout = QHBoxLayout(wrapper)
@@ -182,6 +188,77 @@ class HospitalDashboard(QMainWindow):
         self.setup_history_row()
         self.setup_cost_analysis_row()
         self.setup_list_section()
+
+    def setup_import_page(self):
+        page = QWidget()
+        layout = QVBoxLayout(page)
+        layout.setAlignment(Qt.AlignCenter)
+        layout.setSpacing(30)
+        
+        container = QFrame()
+        container.setStyleSheet("QFrame { background-color: #1E293B; border-radius: 12px; border: 1px solid #334155; }")
+        container.setFixedWidth(500)
+        c_layout = QVBoxLayout(container)
+        c_layout.setContentsMargins(40, 40, 40, 40)
+        c_layout.setSpacing(20)
+        
+        title = QLabel("Importação de Dados")
+        title.setStyleSheet("font-size: 24px; font-weight: bold; color: #F8FAFC; border: none;")
+        title.setAlignment(Qt.AlignCenter)
+        c_layout.addWidget(title)
+        
+        subtitle = QLabel("Selecione as planilhas para carregar o sistema.")
+        subtitle.setStyleSheet("font-size: 14px; color: #94A3B8; border: none;")
+        subtitle.setAlignment(Qt.AlignCenter)
+        c_layout.addWidget(subtitle)
+        
+        # Equipamentos row
+        equip_lay = QHBoxLayout()
+        self.equip_path = QLineEdit()
+        self.equip_path.setPlaceholderText("Planilha de Equipamentos...")
+        self.equip_path.setReadOnly(True)
+        self.equip_path.setStyleSheet("QLineEdit { background: #0F172A; border: 1px solid #334155; padding: 10px; border-radius: 6px; color: #E2E8F0; }")
+        btn_equip = QPushButton("Procurar")
+        btn_equip.setStyleSheet("QPushButton { background: #334155; color: #F8FAFC; padding: 10px 15px; border-radius: 6px; font-weight: bold; } QPushButton:hover { background: #475569; }")
+        btn_equip.clicked.connect(lambda: self.equip_path.setText(QFileDialog.getOpenFileName(self, "Selecionar Planilha Equipamentos", "", "CSV Files (*.csv)")[0]))
+        equip_lay.addWidget(self.equip_path)
+        equip_lay.addWidget(btn_equip)
+        c_layout.addLayout(equip_lay)
+        
+        # OS row (Antigo)
+        os_antiga_lay = QHBoxLayout()
+        self.os_antiga_path = QLineEdit()
+        self.os_antiga_path.setPlaceholderText("Planilha de OS (Formato Antigo)...")
+        self.os_antiga_path.setReadOnly(True)
+        self.os_antiga_path.setStyleSheet("QLineEdit { background: #0F172A; border: 1px solid #334155; padding: 10px; border-radius: 6px; color: #E2E8F0; }")
+        btn_os_antiga = QPushButton("Procurar")
+        btn_os_antiga.setStyleSheet("QPushButton { background: #334155; color: #F8FAFC; padding: 10px 15px; border-radius: 6px; font-weight: bold; } QPushButton:hover { background: #475569; }")
+        btn_os_antiga.clicked.connect(lambda: self.os_antiga_path.setText(QFileDialog.getOpenFileName(self, "Selecionar Planilha OS Antiga", "", "CSV Files (*.csv)")[0]))
+        os_antiga_lay.addWidget(self.os_antiga_path)
+        os_antiga_lay.addWidget(btn_os_antiga)
+        c_layout.addLayout(os_antiga_lay)
+        
+        # OS row (Atual)
+        os_atual_lay = QHBoxLayout()
+        self.os_atual_path = QLineEdit()
+        self.os_atual_path.setPlaceholderText("Planilha de OS (Formato Atual)...")
+        self.os_atual_path.setReadOnly(True)
+        self.os_atual_path.setStyleSheet("QLineEdit { background: #0F172A; border: 1px solid #334155; padding: 10px; border-radius: 6px; color: #E2E8F0; }")
+        btn_os_atual = QPushButton("Procurar")
+        btn_os_atual.setStyleSheet("QPushButton { background: #334155; color: #F8FAFC; padding: 10px 15px; border-radius: 6px; font-weight: bold; } QPushButton:hover { background: #475569; }")
+        btn_os_atual.clicked.connect(lambda: self.os_atual_path.setText(QFileDialog.getOpenFileName(self, "Selecionar Planilha OS Atual", "", "CSV Files (*.csv)")[0]))
+        os_atual_lay.addWidget(self.os_atual_path)
+        os_atual_lay.addWidget(btn_os_atual)
+        c_layout.addLayout(os_atual_lay)
+        
+        # Run button
+        btn_run = QPushButton("Carregar Dados e Acessar Dashboard")
+        btn_run.setStyleSheet("QPushButton { background: #0284C7; color: white; padding: 15px; border-radius: 6px; font-size: 16px; font-weight: bold; } QPushButton:hover { background: #0369A1; }")
+        btn_run.clicked.connect(lambda: self.root_stack.setCurrentIndex(1))
+        c_layout.addWidget(btn_run)
+        
+        layout.addWidget(container)
+        self.root_stack.addWidget(page)
 
     def switch_tab(self, index):
         self.tabs.setCurrentIndex(index)

@@ -1,6 +1,7 @@
 import sys
 import csv
 import random
+import pandas as pd
 from datetime import date, datetime, timedelta
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
@@ -12,6 +13,13 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, QDateTime, QEvent, QDate
 from PySide6.QtGui import QColor, QPainter, QFont, QPen
 from PySide6.QtCharts import QChart, QChartView, QPieSeries, QLineSeries, QDateTimeAxis, QValueAxis, QScatterSeries, QBarSeries, QBarSet, QBarCategoryAxis, QHorizontalBarSeries
+
+from etl.transformation.os_migration import (
+    migrar_dados_servico,
+    obter_total_os_emitidas,
+    obter_total_gasto_os,
+    extrair_historico_os
+)
 
 def generate_mock_os(count, start_date=date(2018, 1, 1)):
     os_list = []
@@ -147,41 +155,29 @@ class HospitalDashboard(QMainWindow):
         header_layout.addWidget(header)
         header_layout.addStretch()
         
-        # Tabs in header
-        self.btn_analysis = QPushButton("Análise")
-        self.btn_data = QPushButton("Dados")
-        tab_style = """
-            QPushButton { padding: 8px 16px; border-radius: 6px; background: transparent; color: #94A3B8; font-weight: bold; font-size: 16px; }
-            QPushButton:checked { background: #38BDF8; color: #0F172A; }
-        """
-        self.btn_analysis.setStyleSheet(tab_style); self.btn_data.setStyleSheet(tab_style)
-        self.btn_analysis.setCheckable(True); self.btn_data.setCheckable(True)
-        self.btn_analysis.setChecked(True)
-        
-        self.btn_analysis.clicked.connect(lambda: self.switch_tab(0))
-        self.btn_data.clicked.connect(lambda: self.switch_tab(1))
-        
-        header_layout.addWidget(self.btn_analysis)
-        header_layout.addWidget(self.btn_data)
-        
         self.main_layout.addLayout(header_layout)
         
         self.active_years = set(range(2018, 2025))
         if not hasattr(self, '_overlays'): self._overlays = []
         
-        self.tabs = QStackedWidget()
+        self.tabs = QTabWidget()
+        self.tabs.setStyleSheet("""
+            QTabBar::tab { padding: 10px 20px; background: #1E293B; color: #94A3B8; border-top-left-radius: 6px; border-top-right-radius: 6px; font-weight: bold; font-size: 14px; margin-right: 2px; }
+            QTabBar::tab:selected { background: #38BDF8; color: #0F172A; }
+            QTabWidget::pane { border: 1px solid #334155; border-radius: 6px; top: -1px; }
+        """)
         self.main_layout.addWidget(self.tabs)
         
         self.analysis_tab = QWidget()
         self.analysis_layout = QVBoxLayout(self.analysis_tab)
-        self.analysis_layout.setContentsMargins(0,0,0,0)
+        self.analysis_layout.setContentsMargins(10,10,10,10)
         self.analysis_layout.setSpacing(24)
-        self.tabs.addWidget(self.analysis_tab)
+        self.tabs.addTab(self.analysis_tab, "Análise")
         
         self.data_tab = QWidget()
         self.data_layout = QVBoxLayout(self.data_tab)
-        self.data_layout.setContentsMargins(0,0,0,0)
-        self.tabs.addWidget(self.data_tab)
+        self.data_layout.setContentsMargins(10,10,10,10)
+        self.tabs.addTab(self.data_tab, "Dados")
         
         self.setup_kpi_row()
         self.setup_insights_row()
@@ -254,24 +250,55 @@ class HospitalDashboard(QMainWindow):
         # Run button
         btn_run = QPushButton("Carregar Dados e Acessar Dashboard")
         btn_run.setStyleSheet("QPushButton { background: #0284C7; color: white; padding: 15px; border-radius: 6px; font-size: 16px; font-weight: bold; } QPushButton:hover { background: #0369A1; }")
-        btn_run.clicked.connect(lambda: self.root_stack.setCurrentIndex(1))
+        btn_run.clicked.connect(self.load_data)
         c_layout.addWidget(btn_run)
         
         layout.addWidget(container)
         self.root_stack.addWidget(page)
 
+    def load_data(self):
+        try:
+            self.df_os = migrar_dados_servico(
+                caminho_os_antiga=self.os_antiga_path.text() or None,
+                caminho_os_atual=self.os_atual_path.text() or None
+            )
+        except Exception as e:
+            QMessageBox.warning(self, "Aviso", f"Não foi possível carregar os dados OS.\nUsando dados MOCK.\n\nDetalhe: {e}")
+            self.df_os = pd.DataFrame()
+            
+        self.root_stack.setCurrentIndex(1)
+        self.update_dashboard_data()
+
+    def update_dashboard_data(self):
+        self.setup_kpi_row()
+        self.update_global_chart()
+
     def switch_tab(self, index):
         self.tabs.setCurrentIndex(index)
-        self.btn_analysis.setChecked(index == 0)
-        self.btn_data.setChecked(index == 1)
 
     def setup_kpi_row(self):
-        kpi_layout = QHBoxLayout()
+        # Limpar layout anterior se existir
+        if hasattr(self, 'kpi_layout_widget'):
+            self.kpi_layout_widget.deleteLater()
+            
+        self.kpi_layout_widget = QWidget()
+        kpi_layout = QHBoxLayout(self.kpi_layout_widget)
+        kpi_layout.setContentsMargins(0,0,0,0)
         kpi_layout.setSpacing(24)
         
         total_equip = len(MOCK_EQUIPMENT)
-        total_os = sum(len(equip.get("os", [])) for equip in MOCK_EQUIPMENT)
-        total_cost = sum(os_data.get("custo", 0) for equip in MOCK_EQUIPMENT for os_data in equip.get("os", []))
+        
+        if hasattr(self, 'df_os') and not self.df_os.empty:
+            total_os = obter_total_os_emitidas(self.df_os)
+            total_cost = obter_total_gasto_os(self.df_os)
+            os_title = "Total de OS Emitidas"
+            cost_title = "Total Gasto em OS"
+        else:
+            total_os = sum(len(equip.get("os", [])) for equip in MOCK_EQUIPMENT)
+            total_cost = sum(os_data.get("custo", 0) for equip in MOCK_EQUIPMENT for os_data in equip.get("os", []))
+            os_title = "Total de OS Emitidas (Mockado)"
+            cost_title = "Total Gasto em OS (Mockado)"
+            
         total_cost_str = f"R$ {total_cost:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
         
         def create_kpi_card(title, value):
@@ -289,18 +316,18 @@ class HospitalDashboard(QMainWindow):
             layout.addWidget(lbl_val)
             return card
 
-        kpi_layout.addWidget(create_kpi_card("Total de Equipamentos", total_equip), 1)
-        kpi_layout.addWidget(create_kpi_card("Total de OS Emitidas", total_os), 1)
-        kpi_layout.addWidget(create_kpi_card("Total Gasto em OS", total_cost_str), 1)
+        kpi_layout.addWidget(create_kpi_card("Total de Equipamentos (Mockado)", total_equip), 1)
+        kpi_layout.addWidget(create_kpi_card(os_title, total_os), 1)
+        kpi_layout.addWidget(create_kpi_card(cost_title, total_cost_str), 1)
         
-        self.analysis_layout.addLayout(kpi_layout)
+        self.analysis_layout.insertWidget(0, self.kpi_layout_widget)
 
     def setup_insights_row(self):
         layout = QHBoxLayout()
         layout.setSpacing(24)
         
         # Age Distribution
-        age_group = QGroupBox("Distribuição por Idade")
+        age_group = QGroupBox("Distribuição por Idade (Mockado)")
         age_group.setStyleSheet("QGroupBox { border: 1px solid #334155; border-radius: 12px; padding-top: 24px; font-weight: bold; }")
         age_vbox = QVBoxLayout(age_group)
         age_vbox.setContentsMargins(24, 24, 24, 24)
@@ -332,7 +359,7 @@ class HospitalDashboard(QMainWindow):
         layout.addWidget(age_group, 1)
 
         # Risk / Priorities Row (2/3 width)
-        top5_group = QGroupBox("Prioridades de Substituição")
+        top5_group = QGroupBox("Prioridades de Substituição (Mockado)")
         top5_group.setStyleSheet("QGroupBox { border: 1px solid #334155; border-radius: 12px; padding-top: 24px; font-weight: bold; }")
         top5_layout = QVBoxLayout(top5_group)
         top5_layout.setContentsMargins(24, 24, 24, 24)
@@ -350,9 +377,9 @@ class HospitalDashboard(QMainWindow):
 
     def setup_history_row(self):
         # OS History (100% width)
-        chart_container = QGroupBox("Histórico de Emissão de OS")
-        chart_container.setStyleSheet("QGroupBox { border: 1px solid #334155; border-radius: 12px; padding-top: 24px; font-weight: bold; }")
-        chart_vbox = QVBoxLayout(chart_container)
+        self.history_group = QGroupBox("Histórico de Emissão de OS (Mockado)")
+        self.history_group.setStyleSheet("QGroupBox { border: 1px solid #334155; border-radius: 12px; padding-top: 24px; font-weight: bold; }")
+        chart_vbox = QVBoxLayout(self.history_group)
         chart_vbox.setContentsMargins(24, 24, 24, 24)
         
         self.global_chart_view = CrosshairChartView()
@@ -362,7 +389,7 @@ class HospitalDashboard(QMainWindow):
         chart_vbox.addWidget(self.global_chart_view)
         
         self.update_global_chart()
-        self.analysis_layout.addWidget(chart_container)
+        self.analysis_layout.addWidget(self.history_group)
 
     def setup_cost_analysis_row(self):
         layout = QHBoxLayout()
@@ -370,7 +397,7 @@ class HospitalDashboard(QMainWindow):
         
         group_style = "QGroupBox { border: 1px solid #334155; border-radius: 12px; padding-top: 24px; font-weight: bold; }"
 
-        evol_group = QGroupBox("Evolução do Custo Total por Ano")
+        evol_group = QGroupBox("Evolução do Custo Total por Ano (Mockado)")
         evol_group.setStyleSheet(group_style)
         evol_layout = QVBoxLayout(evol_group)
         evol_layout.setContentsMargins(24, 24, 24, 24)
@@ -381,7 +408,7 @@ class HospitalDashboard(QMainWindow):
         evol_layout.addWidget(self.cost_evol_chart_view)
         layout.addWidget(evol_group, 1)
 
-        top10_group = QGroupBox("Top 10 Equipamentos Custo")
+        top10_group = QGroupBox("Top 10 Equipamentos Custo (Mockado)")
         top10_group.setStyleSheet(group_style)
         top10_layout = QVBoxLayout(top10_group)
         top10_layout.setContentsMargins(24, 24, 24, 24)
@@ -392,7 +419,7 @@ class HospitalDashboard(QMainWindow):
         top10_layout.addWidget(self.top10_chart_view)
         layout.addWidget(top10_group, 1)
 
-        sector_group = QGroupBox("Custos por Setor (Top 10)")
+        sector_group = QGroupBox("Custos por Setor (Top 10) (Mockado)")
         sector_group.setStyleSheet(group_style)
         sector_layout = QVBoxLayout(sector_group)
         sector_layout.setContentsMargins(24, 24, 24, 24)
@@ -543,10 +570,32 @@ class HospitalDashboard(QMainWindow):
         
         all_years = list(range(2018, 2025))
         year_data = {y: {m: 0 for m in range(1, 13)} for y in all_years}
-        for equip in MOCK_EQUIPMENT:
-            for os in equip["os"]:
-                dt = datetime.strptime(os["data"], "%Y-%m-%d").date()
-                if dt.year in all_years: year_data[dt.year][dt.month] += 1
+        
+        usando_mock = True
+        if hasattr(self, 'df_os') and not self.df_os.empty:
+            df_hist = extrair_historico_os(self.df_os)
+            if not df_hist.empty:
+                usando_mock = False
+                all_years = sorted(df_hist['Ano'].unique().tolist())
+                # Adiciona anos que podem existir além dos mocks originais ao active_years para visualização
+                for py in all_years:
+                    self.active_years.add(py)
+                year_data = {y: {m: 0 for m in range(1, 13)} for y in all_years}
+                for _, row in df_hist.iterrows():
+                    y = int(row['Ano'])
+                    m = int(row['Mes'])
+                    c = int(row['Contagem'])
+                    if y in year_data:
+                        year_data[y][m] = c
+                        
+        if usando_mock:
+            self.history_group.setTitle("Histórico de Emissão de OS (Mockado)")
+            for equip in MOCK_EQUIPMENT:
+                for os in equip["os"]:
+                    dt = datetime.strptime(os["data"], "%Y-%m-%d").date()
+                    if dt.year in all_years: year_data[dt.year][dt.month] += 1
+        else:
+            self.history_group.setTitle("Histórico de Emissão de OS")
         
         axis_x = QBarCategoryAxis()
         axis_x.append(["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"])

@@ -80,3 +80,34 @@ def migrar_dados_servico(caminho_os_antiga=None, caminho_os_atual=None):
     
     print("Processamento de Ordens de Serviço finalizado.")
     return df_migrado
+
+def obter_total_os_emitidas(df):
+    """Retorna o total de ordens de serviço emitidas."""
+    return len(df)
+
+def obter_total_gasto_os(df):
+    """Calcula e retorna o total gasto em ordens de serviço."""
+    if 'Custo' in df.columns:
+        df_custo = df['Custo'].copy()
+        # Converte para string e limpa os caracteres monetários
+        df_custo = df_custo.astype(str).str.replace(r'[^\d,\.]', '', regex=True)
+        # Substitui vírgula por ponto se necessário, em casos gerais do brasil
+        df_custo = df_custo.str.replace(',', '.')
+        # Como as vezes pode ficar com mais de um ponto (ex 1.000.00), é melhor uma limpeza robusta
+        # mas como simplificação, coerce é usado:
+        custo_num = pd.to_numeric(df_custo, errors='coerce').fillna(0)
+        return float(custo_num.sum())
+    return 0.0
+
+def extrair_historico_os(df):
+    """Extrai os dados para alimentar o gráfico de histórico de emissão de OS."""
+    if 'Abertura' in df.columns:
+        df_temp = pd.DataFrame()
+        df_temp['Data'] = pd.to_datetime(df['Abertura'], errors='coerce')
+        df_temp = df_temp.dropna(subset=['Data'])
+        df_temp['Ano'] = df_temp['Data'].dt.year
+        df_temp['Mes'] = df_temp['Data'].dt.month
+        
+        historico = df_temp.groupby(['Ano', 'Mes']).size().reset_index(name='Contagem')
+        return historico
+    return pd.DataFrame()

@@ -1,4 +1,6 @@
 import sys
+import os
+import json
 import csv
 import random
 import pandas as pd
@@ -8,7 +10,7 @@ from PySide6.QtWidgets import (
     QLabel, QTableWidget, QTableWidgetItem, QHeaderView, QFrame,
     QLineEdit, QComboBox, QPushButton, QCheckBox, QFormLayout, 
     QGroupBox, QScrollArea, QFileDialog, QMessageBox, QDialog, QDateEdit, QSpinBox,
-    QGraphicsLineItem, QTabWidget, QStackedWidget
+    QGraphicsLineItem, QTabWidget, QStackedWidget, QListWidget, QListWidgetItem
 )
 from PySide6.QtCore import Qt, QDateTime, QEvent, QDate
 from PySide6.QtGui import QColor, QPainter, QFont, QPen
@@ -155,6 +157,11 @@ class HospitalDashboard(QMainWindow):
         header_layout.addWidget(header)
         header_layout.addStretch()
         
+        btn_back = QPushButton("Voltar para Importação")
+        btn_back.setStyleSheet("QPushButton { background: #334155; color: #F8FAFC; padding: 10px 15px; border-radius: 6px; font-weight: bold; } QPushButton:hover { background: #475569; }")
+        btn_back.clicked.connect(lambda: self.root_stack.setCurrentIndex(0))
+        header_layout.addWidget(btn_back)
+        
         self.main_layout.addLayout(header_layout)
         
         self.active_years = set(range(2018, 2025))
@@ -253,8 +260,79 @@ class HospitalDashboard(QMainWindow):
         btn_run.clicked.connect(self.load_data)
         c_layout.addWidget(btn_run)
         
+        # Histórico
+        self.history_path_file = os.path.join(os.path.dirname(__file__), 'data', 'history.json')
+        history_title = QLabel("Histórico de Importações Recentes:")
+        history_title.setStyleSheet("color: #94A3B8; font-weight: bold; margin-top: 20px;")
+        c_layout.addWidget(history_title)
+        
+        self.history_list = QListWidget()
+        self.history_list.setStyleSheet(
+            "QListWidget { background: #0F172A; border: 1px solid #334155; border-radius: 6px; color: #E2E8F0; padding: 5px; }"
+            "QListWidget::item:selected { background: #38BDF8; color: #0F172A; }"
+        )
+        self.history_list.setFixedHeight(120)
+        self.history_list.itemClicked.connect(self.load_history_item)
+        c_layout.addWidget(self.history_list)
+        
+        self.populate_history()
+        
         layout.addWidget(container)
         self.root_stack.addWidget(page)
+        
+    def populate_history(self):
+        self.history_list.clear()
+        if os.path.exists(self.history_path_file):
+            try:
+                with open(self.history_path_file, 'r', encoding='utf-8') as f:
+                    history = json.load(f)
+                    for item in reversed(history):  # Mostrar mais recentes primeiro
+                        equip = item.get('equip', 'N/A')
+                        d = item.get('date', '')
+                        display_text = f"[{d}] {os.path.basename(equip) if equip != 'N/A' else 'Sem eq'}"
+                        list_item = QListWidgetItem(display_text)
+                        list_item.setData(Qt.UserRole, item)
+                        self.history_list.addItem(list_item)
+            except Exception as e:
+                print(f"Erro ao ler histórico: {e}")
+
+    def load_history_item(self, item):
+        data = item.data(Qt.UserRole)
+        self.equip_path.setText(data.get('equip', ''))
+        self.os_antiga_path.setText(data.get('os_antiga', ''))
+        self.os_atual_path.setText(data.get('os_atual', ''))
+
+    def save_history(self):
+        equip = self.equip_path.text()
+        os_antiga = self.os_antiga_path.text()
+        os_atual = self.os_atual_path.text()
+        if not equip and not os_antiga and not os_atual:
+            return
+            
+        history = []
+        if os.path.exists(self.history_path_file):
+            try:
+                with open(self.history_path_file, 'r', encoding='utf-8') as f:
+                    history = json.load(f)
+            except:
+                pass
+                
+        new_entry = {
+            'equip': equip,
+            'os_antiga': os_antiga,
+            'os_atual': os_atual,
+            'date': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        }
+        
+        # Evitar duplicata consecutiva exata
+        if not history or history[-1].get('os_atual') != os_atual or history[-1].get('os_antiga') != os_antiga or history[-1].get('equip') != equip:
+            history.append(new_entry)
+            # Manter apenas as últimas 10
+            history = history[-10:]
+            
+            with open(self.history_path_file, 'w', encoding='utf-8') as f:
+                json.dump(history, f, indent=4, ensure_ascii=False)
+            self.populate_history()
 
     def load_data(self):
         try:
@@ -262,6 +340,7 @@ class HospitalDashboard(QMainWindow):
                 caminho_os_antiga=self.os_antiga_path.text() or None,
                 caminho_os_atual=self.os_atual_path.text() or None
             )
+            self.save_history()
         except Exception as e:
             QMessageBox.warning(self, "Aviso", f"Não foi possível carregar os dados OS.\nUsando dados MOCK.\n\nDetalhe: {e}")
             self.df_os = pd.DataFrame()

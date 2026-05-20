@@ -22,6 +22,7 @@ from etl.transformation.os_migration import (
     obter_total_gasto_os,
     extrair_historico_os
 )
+from etl.transformation.inventory import integrar_dados_dashboard
 
 def generate_mock_os(count, start_date=date(2018, 1, 1)):
     os_list = []
@@ -38,16 +39,16 @@ def generate_mock_os(count, start_date=date(2018, 1, 1)):
     return sorted(os_list, key=lambda x: x["data"])
 
 MOCK_EQUIPMENT = [
-    {"modelo": "MRI Signa HDx", "setor": "Radiologia", "criticidade": 3, "data_aquisicao": "2010-05-15", "status": "Inoperante", "valor": 1200000, "score": 95, "os": generate_mock_os(15)},
-    {"modelo": "Ventilador PB 840", "setor": "UTI Adulto", "criticidade": 3, "data_aquisicao": "2012-03-10", "status": "Em uso", "valor": 45000, "score": 88, "os": generate_mock_os(12)},
-    {"modelo": "Raio-X Digital", "setor": "Emergência", "criticidade": 2, "data_aquisicao": "2011-08-20", "status": "Inoperante", "valor": 250000, "score": 82, "os": generate_mock_os(10)},
-    {"modelo": "Bomba Alaris", "setor": "Enfermaria", "criticidade": 1, "data_aquisicao": "2015-11-05", "status": "Disponível", "valor": 8000, "score": 35, "os": generate_mock_os(5)},
-    {"modelo": "Monitor V24", "setor": "UTI Cardio", "criticidade": 2, "data_aquisicao": "2018-02-28", "status": "Em uso", "valor": 15000, "score": 42, "os": generate_mock_os(8)},
-    {"modelo": "Lifepak 15", "setor": "Emergência", "criticidade": 3, "data_aquisicao": "2013-06-15", "status": "Disponível", "valor": 35000, "score": 75, "os": generate_mock_os(10)},
-    {"modelo": "Tomógrafo CT660", "setor": "Radiologia", "criticidade": 3, "data_aquisicao": "2009-12-01", "status": "Em uso", "valor": 1800000, "score": 78, "os": generate_mock_os(20)},
-    {"modelo": "Ultrassom Voluson", "setor": "Obstetrícia", "criticidade": 2, "data_aquisicao": "2020-04-10", "status": "Em uso", "valor": 400000, "score": 25, "os": generate_mock_os(6)},
-    {"modelo": "Autoclave Sterivap", "setor": "CME", "criticidade": 2, "data_aquisicao": "2014-09-22", "status": "Disponível", "valor": 120000, "score": 55, "os": generate_mock_os(9)},
-    {"modelo": "Foco LED", "setor": "Bloco Cirúrgico", "criticidade": 2, "data_aquisicao": "2012-10-15", "status": "Em uso", "valor": 60000, "score": 62, "os": generate_mock_os(7)},
+    {"modelo": "MRI Signa HDx", "setor": "Radiologia", "criticidade": 3, "data_aquisicao": "2010-05-15", "status": "Inoperante", "valor": 1200000, "score": 95, "identificador": "HCPE-0001", "os": generate_mock_os(15)},
+    {"modelo": "Ventilador PB 840", "setor": "UTI Adulto", "criticidade": 3, "data_aquisicao": "2012-03-10", "status": "Em uso", "valor": 45000, "score": 88, "identificador": "HCPE-0002", "os": generate_mock_os(12)},
+    {"modelo": "Raio-X Digital", "setor": "Emergência", "criticidade": 2, "data_aquisicao": "2011-08-20", "status": "Inoperante", "valor": 250000, "score": 82, "identificador": "HCPE-0003", "os": generate_mock_os(10)},
+    {"modelo": "Bomba Alaris", "setor": "Enfermaria", "criticidade": 1, "data_aquisicao": "2015-11-05", "status": "Disponível", "valor": 8000, "score": 35, "identificador": "HCPE-0004", "os": generate_mock_os(5)},
+    {"modelo": "Monitor V24", "setor": "UTI Cardio", "criticidade": 2, "data_aquisicao": "2018-02-28", "status": "Em uso", "valor": 15000, "score": 42, "identificador": "HCPE-0005", "os": generate_mock_os(8)},
+    {"modelo": "Lifepak 15", "setor": "Emergência", "criticidade": 3, "data_aquisicao": "2013-06-15", "status": "Disponível", "valor": 35000, "score": 75, "identificador": "HCPE-0006", "os": generate_mock_os(10)},
+    {"modelo": "Tomógrafo CT660", "setor": "Radiologia", "criticidade": 3, "data_aquisicao": "2009-12-01", "status": "Em uso", "valor": 1800000, "score": 78, "identificador": "HCPE-0007", "os": generate_mock_os(20)},
+    {"modelo": "Ultrassom Voluson", "setor": "Obstetrícia", "criticidade": 2, "data_aquisicao": "2020-04-10", "status": "Em uso", "valor": 400000, "score": 25, "identificador": "HCPE-0008", "os": generate_mock_os(6)},
+    {"modelo": "Autoclave Sterivap", "setor": "CME", "criticidade": 2, "data_aquisicao": "2014-09-22", "status": "Disponível", "valor": 120000, "score": 55, "identificador": "HCPE-0009", "os": generate_mock_os(9)},
+    {"modelo": "Foco LED", "setor": "Bloco Cirúrgico", "criticidade": 2, "data_aquisicao": "2012-10-15", "status": "Em uso", "valor": 60000, "score": 62, "identificador": "HCPE-0010", "os": generate_mock_os(7)},
 ]
 
 DARK_THEME_QSS = """
@@ -208,7 +209,7 @@ class HospitalDashboard(QMainWindow):
         
         self.main_layout.addLayout(header_layout)
         
-        self.active_years = set(range(2018, 2025))
+        self.active_years = set(range(2018, 2026))
         if not hasattr(self, '_overlays'): self._overlays = []
         
         self.tabs = QTabWidget()
@@ -230,11 +231,14 @@ class HospitalDashboard(QMainWindow):
         self.data_layout.setContentsMargins(10,10,10,10)
         self.tabs.addTab(self.data_tab, "Dados")
         
+        self.equipment_data = MOCK_EQUIPMENT
+        self.df_os = pd.DataFrame()
+        
         self.setup_kpi_row()
         self.setup_insights_row()
         self.setup_history_row()
         self.setup_cost_analysis_row()
-        self.setup_list_section()
+        self.setup_data_tab()
 
     def setup_import_page(self):
         page = QWidget()
@@ -271,6 +275,19 @@ class HospitalDashboard(QMainWindow):
         equip_lay.addWidget(self.equip_path)
         equip_lay.addWidget(btn_equip)
         c_layout.addLayout(equip_lay)
+        
+        # Criticidade row
+        crit_lay = QHBoxLayout()
+        self.crit_path = QLineEdit()
+        self.crit_path.setPlaceholderText("Planilha de Criticidade (Opcional)...")
+        self.crit_path.setReadOnly(True)
+        self.crit_path.setStyleSheet("QLineEdit { background: #0F172A; border: 1px solid #334155; padding: 10px; border-radius: 6px; color: #E2E8F0; }")
+        btn_crit = QPushButton("Procurar")
+        btn_crit.setStyleSheet("QPushButton { background: #334155; color: #F8FAFC; padding: 10px 15px; border-radius: 6px; font-weight: bold; } QPushButton:hover { background: #475569; }")
+        btn_crit.clicked.connect(lambda: self.crit_path.setText(QFileDialog.getOpenFileName(self, "Selecionar Planilha de Criticidade", "", "CSV Files (*.csv)")[0]))
+        crit_lay.addWidget(self.crit_path)
+        crit_lay.addWidget(btn_crit)
+        c_layout.addLayout(crit_lay)
         
         # OS row (Antigo)
         os_antiga_lay = QHBoxLayout()
@@ -360,14 +377,16 @@ class HospitalDashboard(QMainWindow):
     def load_history_item(self, item):
         data = item.data(Qt.UserRole)
         self.equip_path.setText(data.get('equip', ''))
+        self.crit_path.setText(data.get('crit', ''))
         self.os_antiga_path.setText(data.get('os_antiga', ''))
         self.os_atual_path.setText(data.get('os_atual', ''))
 
     def save_history(self):
         equip = self.equip_path.text()
+        crit = self.crit_path.text()
         os_antiga = self.os_antiga_path.text()
         os_atual = self.os_atual_path.text()
-        if not equip and not os_antiga and not os_atual:
+        if not equip and not os_antiga and not os_atual and not crit:
             return
             
         history = []
@@ -380,13 +399,14 @@ class HospitalDashboard(QMainWindow):
                 
         new_entry = {
             'equip': equip,
+            'crit': crit,
             'os_antiga': os_antiga,
             'os_atual': os_atual,
             'date': datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
         
         # Evitar duplicata consecutiva exata
-        if not history or history[-1].get('os_atual') != os_atual or history[-1].get('os_antiga') != os_antiga or history[-1].get('equip') != equip:
+        if not history or history[-1].get('os_atual') != os_atual or history[-1].get('os_antiga') != os_antiga or history[-1].get('equip') != equip or history[-1].get('crit') != crit:
             history.append(new_entry)
             # Manter apenas as últimas 10
             history = history[-10:]
@@ -418,7 +438,21 @@ class HospitalDashboard(QMainWindow):
                 caminho_os_antiga=self.os_antiga_path.text() or None,
                 caminho_os_atual=self.os_atual_path.text() or None
             )
+            print(f"DEBUG: df_os size after migration: {len(self.df_os)}")
             self.save_history()
+
+            valid_equipment = False
+            if self.equip_path.text():
+                try:
+                    df_eq = integrar_dados_dashboard(self.equip_path.text(), self.df_os, self.crit_path.text() or None)
+                    if df_eq is not None and len(df_eq) > 0:
+                        self.equipment_data = df_eq
+                        valid_equipment = True
+                except Exception as e:
+                    print(f"Erro processando equipamentos: {e}")
+            
+            if not valid_equipment:
+                self.equipment_data = MOCK_EQUIPMENT
 
             if not self.df_os.empty:
                 dialog = DataPreviewDialog(self.df_os, self)
@@ -428,6 +462,7 @@ class HospitalDashboard(QMainWindow):
         except Exception as e:
             QMessageBox.warning(self, "Aviso", f"Não foi possível carregar os dados OS.\nUsando dados MOCK.\n\nDetalhe: {e}")
             self.df_os = pd.DataFrame()
+            self.equipment_data = MOCK_EQUIPMENT
             
         self.root_stack.setCurrentIndex(1)
         self.update_dashboard_data()
@@ -435,6 +470,16 @@ class HospitalDashboard(QMainWindow):
     def update_dashboard_data(self):
         self.setup_kpi_row()
         self.update_global_chart()
+        self.update_cost_analysis_charts()
+        
+        self.f_setor.blockSignals(True)
+        self.f_setor.clear()
+        data_source = getattr(self, 'equipment_data', MOCK_EQUIPMENT)
+        self.f_setor.addItems(["Todos Setores"] + sorted(list(set(i.get("setor", "Desconhecido") for i in data_source))))
+        self.f_setor.blockSignals(False)
+        
+        self.update_age_donut() # includes populate_top5 and recalculating scores dynamically
+        self.apply_filters()
 
     def switch_tab(self, index):
         self.tabs.setCurrentIndex(index)
@@ -449,7 +494,7 @@ class HospitalDashboard(QMainWindow):
         kpi_layout.setContentsMargins(0,0,0,0)
         kpi_layout.setSpacing(24)
         
-        total_equip = len(MOCK_EQUIPMENT)
+        total_equip = len(self.equipment_data)
         
         if hasattr(self, 'df_os') and not self.df_os.empty:
             total_os = obter_total_os_emitidas(self.df_os)
@@ -457,8 +502,8 @@ class HospitalDashboard(QMainWindow):
             os_title = "Total de OS Emitidas"
             cost_title = "Total Gasto em OS"
         else:
-            total_os = sum(len(equip.get("os", [])) for equip in MOCK_EQUIPMENT)
-            total_cost = sum(os_data.get("custo", 0) for equip in MOCK_EQUIPMENT for os_data in equip.get("os", []))
+            total_os = sum(len(equip.get("os", [])) for equip in self.equipment_data)
+            total_cost = sum(os_data.get("custo", 0) for equip in self.equipment_data for os_data in equip.get("os", []))
             os_title = "Total de OS Emitidas (Mockado)"
             cost_title = "Total Gasto em OS (Mockado)"
             
@@ -479,7 +524,7 @@ class HospitalDashboard(QMainWindow):
             layout.addWidget(lbl_val)
             return card
 
-        kpi_layout.addWidget(create_kpi_card("Total de Equipamentos (Mockado)", total_equip), 1)
+        kpi_layout.addWidget(create_kpi_card("Total de Equipamentos", total_equip), 1)
         kpi_layout.addWidget(create_kpi_card(os_title, total_os), 1)
         kpi_layout.addWidget(create_kpi_card(cost_title, total_cost_str), 1)
         
@@ -490,7 +535,7 @@ class HospitalDashboard(QMainWindow):
         layout.setSpacing(24)
         
         # Age Distribution
-        age_group = QGroupBox("Distribuição por Idade (Mockado)")
+        age_group = QGroupBox("Distribuição por Idade")
         age_group.setStyleSheet("QGroupBox { border: 1px solid #334155; border-radius: 12px; padding-top: 24px; font-weight: bold; }")
         age_vbox = QVBoxLayout(age_group)
         age_vbox.setContentsMargins(24, 24, 24, 24)
@@ -518,29 +563,62 @@ class HospitalDashboard(QMainWindow):
         
         self._overlays.append((age_group, age_overlay))
         age_group.installEventFilter(self)
-        self.update_age_donut()
-        layout.addWidget(age_group, 1)
 
         # Risk / Priorities Row (2/3 width)
-        top5_group = QGroupBox("Prioridades de Substituição (Mockado)")
-        top5_group.setStyleSheet("QGroupBox { border: 1px solid #334155; border-radius: 12px; padding-top: 24px; font-weight: bold; }")
-        top5_layout = QVBoxLayout(top5_group)
+        self.top5_group = QGroupBox("Prioridades de Substituição")
+        self.top5_group.setStyleSheet("QGroupBox { border: 1px solid #334155; border-radius: 12px; padding-top: 24px; font-weight: bold; }")
+        top5_layout = QVBoxLayout(self.top5_group)
         top5_layout.setContentsMargins(24, 24, 24, 24)
         top5_layout.setSpacing(12)
+        
+        # Header for toggle
+        top5_header = QHBoxLayout()
+        top5_header.addStretch()
+        self.btn_show_chart = QPushButton("Gráfico")
+        self.btn_show_chart.setCheckable(True)
+        self.btn_show_chart.setChecked(True)
+        self.btn_show_table = QPushButton("Tabela")
+        self.btn_show_table.setCheckable(True)
+        
+        top5_header.addWidget(self.btn_show_chart)
+        top5_header.addWidget(self.btn_show_table)
+        top5_layout.addLayout(top5_header)
+        
+        self.top5_stack = QStackedWidget()
         
         self.top5_chart_view = QChartView()
         self.top5_chart_view.setRenderHint(QPainter.Antialiasing)
         self.top5_chart_view.setStyleSheet("background: transparent;")
         self.top5_chart_view.setFixedHeight(280)
-        self.populate_top5()
-        top5_layout.addWidget(self.top5_chart_view)
-        layout.addWidget(top5_group, 2)
+        
+        self.top5_table_view = QTableWidget()
+        self.top5_table_view.setColumnCount(3)
+        self.top5_table_view.setHorizontalHeaderLabels(["Modelo", "Score", "Identificador"])
+        self.top5_table_view.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.top5_table_view.setStyleSheet("QTableWidget { background-color: #1E293B; color: #F8FAFC; gridline-color: #334155; } QHeaderView::section { background-color: #334155; color: #F8FAFC; }")
+        
+        self.top5_stack.addWidget(self.top5_chart_view)
+        self.top5_stack.addWidget(self.top5_table_view)
+        top5_layout.addWidget(self.top5_stack)
+        
+        self.btn_show_chart.clicked.connect(lambda: self.set_top5_view(0))
+        self.btn_show_table.clicked.connect(lambda: self.set_top5_view(1))
+        
+        self.update_age_donut()
+        
+        layout.addWidget(age_group, 1)
+        layout.addWidget(self.top5_group, 2)
         
         self.analysis_layout.addLayout(layout)
 
+    def set_top5_view(self, index):
+        self.top5_stack.setCurrentIndex(index)
+        self.btn_show_chart.setChecked(index == 0)
+        self.btn_show_table.setChecked(index == 1)
+
     def setup_history_row(self):
         # OS History (100% width)
-        self.history_group = QGroupBox("Histórico de Emissão de OS (Mockado)")
+        self.history_group = QGroupBox("Histórico de Emissão de OS")
         self.history_group.setStyleSheet("QGroupBox { border: 1px solid #334155; border-radius: 12px; padding-top: 24px; font-weight: bold; }")
         chart_vbox = QVBoxLayout(self.history_group)
         chart_vbox.setContentsMargins(24, 24, 24, 24)
@@ -575,7 +653,7 @@ class HospitalDashboard(QMainWindow):
         
         group_style = "QGroupBox { border: 1px solid #334155; border-radius: 12px; padding-top: 24px; font-weight: bold; }"
 
-        evol_group = QGroupBox("Evolução do Custo Total por Ano (Mockado)")
+        evol_group = QGroupBox("Evolução do Custo Total por Ano")
         evol_group.setStyleSheet(group_style)
         evol_layout = QVBoxLayout(evol_group)
         evol_layout.setContentsMargins(24, 24, 24, 24)
@@ -586,7 +664,7 @@ class HospitalDashboard(QMainWindow):
         evol_layout.addWidget(self.cost_evol_chart_view)
         layout.addWidget(evol_group, 1)
 
-        top10_group = QGroupBox("Top 10 Equipamentos Custo (Mockado)")
+        top10_group = QGroupBox("Top 10 Equipamentos Custo")
         top10_group.setStyleSheet(group_style)
         top10_layout = QVBoxLayout(top10_group)
         top10_layout.setContentsMargins(24, 24, 24, 24)
@@ -597,7 +675,7 @@ class HospitalDashboard(QMainWindow):
         top10_layout.addWidget(self.top10_chart_view)
         layout.addWidget(top10_group, 1)
 
-        sector_group = QGroupBox("Custos por Setor (Top 10) (Mockado)")
+        sector_group = QGroupBox("Custos por Setor (Top 10)")
         sector_group.setStyleSheet(group_style)
         sector_layout = QVBoxLayout(sector_group)
         sector_layout.setContentsMargins(24, 24, 24, 24)
@@ -617,7 +695,7 @@ class HospitalDashboard(QMainWindow):
         equip_cost = {}
         sector_cost = {}
 
-        for equip in MOCK_EQUIPMENT:
+        for equip in self.equipment_data:
             modelo = equip["modelo"]
             setor = equip["setor"]
             e_cost = 0
@@ -715,8 +793,18 @@ class HospitalDashboard(QMainWindow):
 
     def update_age_donut(self):
         threshold = self.age_threshold.value()
-        over = sum(1 for i in MOCK_EQUIPMENT if (date.today().year - int(i["data_aquisicao"].split("-")[0])) >= threshold)
-        under = len(MOCK_EQUIPMENT) - over
+        data_source = getattr(self, 'equipment_data', MOCK_EQUIPMENT)
+        current_year = date.today().year
+        
+        over = 0
+        for i in data_source:
+            try:
+                if (current_year - int(i["data_aquisicao"].split("-")[0])) >= threshold:
+                    over += 1
+            except:
+                pass
+                
+        under = len(data_source) - over
         total = over + under
         pct_over = (over / total) * 100 if total else 0
         pct_under = (under / total) * 100 if total else 0
@@ -728,6 +816,25 @@ class HospitalDashboard(QMainWindow):
         chart.setBackgroundBrush(QColor("#1E293B")); chart.setTitleBrush(QColor("#F8FAFC"))
         chart.legend().setAlignment(Qt.AlignBottom); chart.legend().setLabelColor(QColor("#F8FAFC"))
         self.age_donut_view.setChart(chart)
+        
+        # Recalcula dinamicamente a priorização com o novo corte da UI e propaga para o gráfico Top 5
+        max_custo = 0
+        for eq in data_source:
+            tot = sum(o.get('custo', 0) for o in eq.get('os', []))
+            if tot > max_custo: max_custo = tot
+            
+        for eq in data_source:
+            try:
+                anos = current_year - int(eq["data_aquisicao"].split("-")[0])
+            except:
+                anos = 0
+            idade_pts = 20 if anos >= threshold else 0
+            crit_pts = (eq.get('criticidade', 1) / 3.0) * 50
+            tot = sum(o.get('custo', 0) for o in eq.get('os', []))
+            custo_pts = (tot / max_custo * 30) if max_custo > 0 else 0
+            eq['score'] = idade_pts + crit_pts + custo_pts
+            
+        self.populate_top5()
 
     def handle_year_legend_click(self):
         marker = self.sender()
@@ -746,7 +853,7 @@ class HospitalDashboard(QMainWindow):
         chart = QChart(); chart.setAnimationOptions(QChart.SeriesAnimations); chart.setBackgroundBrush(QColor("#1E293B")); chart.setTitleBrush(QColor("#F8FAFC"))
         colors = ["#10B981", "#3B82F6", "#F59E0B", "#EF4444", "#8B5CF6", "#EC4899", "#14B8A6"]
         
-        all_years = list(range(2018, 2025))
+        all_years = list(range(2018, 2026))
         
         usando_mock = True
         if hasattr(self, 'df_os') and not self.df_os.empty:
@@ -766,7 +873,7 @@ class HospitalDashboard(QMainWindow):
                         year_data[y][m] = c
                         
         if usando_mock:
-            all_years = list(range(2018, 2025))
+            all_years = list(range(2018, 2026))
             if not hasattr(self, '_current_data_years') or self._current_data_years != all_years:
                 self.active_years = set(all_years)
                 self._current_data_years = all_years
@@ -774,7 +881,7 @@ class HospitalDashboard(QMainWindow):
             year_data = {y: {m: 0 for m in range(1, 13)} for y in all_years}
             
             self.history_group.setTitle("Histórico de Emissão de OS (Mockado)")
-            for equip in MOCK_EQUIPMENT:
+            for equip in self.equipment_data:
                 for os in equip["os"]:
                     dt = datetime.strptime(os["data"], "%Y-%m-%d").date()
                     if dt.year in all_years: year_data[dt.year][dt.month] += 1
@@ -875,13 +982,20 @@ class HospitalDashboard(QMainWindow):
             self.history_table.setItem(i, 13, item_media)
 
     def populate_top5(self):
-        sorted_items = sorted(MOCK_EQUIPMENT, key=lambda x: x["score"], reverse=True)[:5]
+        sorted_items = sorted(self.equipment_data, key=lambda x: x["score"], reverse=True)[:5]
         
+        # Update Table
+        self.top5_table_view.setRowCount(len(sorted_items))
+        for r, item in enumerate(sorted_items):
+            self.top5_table_view.setItem(r, 0, QTableWidgetItem(item["modelo"]))
+            self.top5_table_view.setItem(r, 1, QTableWidgetItem(f"{item['score']:.1f}"))
+            self.top5_table_view.setItem(r, 2, QTableWidgetItem(item.get("identificador", "N/A")))
+            
+        # Update Chart
         series = QHorizontalBarSeries()
         bar_set = QBarSet("Score")
         bar_set.setBrush(QColor("#CF6679"))
         
-        # QHorizontalBarSeries appends from bottom to top on Y axis, so we reverse
         categories = []
         for item in reversed(sorted_items):
             bar_set.append(item["score"])
@@ -908,24 +1022,65 @@ class HospitalDashboard(QMainWindow):
         chart.addAxis(axis_x, Qt.AlignBottom)
         series.attachAxis(axis_x)
         
-        def show_details(index):
-            # In reversed list, the index corresponds to reversing sorted_items
+        def on_bar_clicked(index):
             item = list(reversed(sorted_items))[index]
-            dialog = QDialog(self)
-            dialog.setWindowTitle(f"Detalhes - {item['modelo']}")
-            dialog.setStyleSheet("QDialog { background-color: #121212; color: #E0E0E0; } QLabel { color: #E0E0E0; }")
-            dialog.setFixedWidth(250)
-            layout = QFormLayout(dialog)
-            for k, v in item.items():
-                layout.addRow(QLabel(str(k).capitalize() + ":"), QLabel(str(v)))
-            btn = QPushButton("Fechar")
-            btn.clicked.connect(dialog.accept)
-            layout.addWidget(btn)
-            dialog.exec()
+            self.show_equipment_modal(item)
             
-        bar_set.clicked.connect(show_details)
-        
+        bar_set.clicked.connect(on_bar_clicked)
         self.top5_chart_view.setChart(chart)
+
+    def show_equipment_modal(self, item):
+        dialog = QDialog(self)
+        dialog.setWindowTitle(f"Equipamento: {item['modelo']}")
+        dialog.setStyleSheet("QDialog { background-color: #0F172A; color: #F8FAFC; border: 1px solid #334155; } QLabel { color: #F8FAFC; }")
+        dialog.setMinimumWidth(400)
+        
+        layout = QVBoxLayout(dialog)
+        form = QFormLayout()
+        
+        lbl_style = "font-weight: bold; color: #38BDF8;"
+        
+        def add_row(label, value):
+            l = QLabel(label); l.setStyleSheet(lbl_style)
+            v = QLabel(str(value))
+            form.addRow(l, v)
+            
+        add_row("Modelo:", item.get("modelo"))
+        add_row("Setor:", item.get("setor"))
+        add_row("Identificador:", item.get("identificador", "N/A"))
+        add_row("Criticidade:", item.get("criticidade"))
+        add_row("Data Aquisição:", item.get("data_aquisicao"))
+        add_row("Status:", item.get("status"))
+        add_row("Score de Substituição:", f"{item.get('score', 0):.2f}")
+        
+        layout.addLayout(form)
+        
+        if item.get("os"):
+            os_title = QLabel(f"\nHistórico de OS ({len(item['os'])}):")
+            os_title.setStyleSheet("font-weight: bold; color: #F59E0B;")
+            layout.addWidget(os_title)
+            
+            os_table = QTableWidget()
+            os_table.setColumnCount(3)
+            os_table.setHorizontalHeaderLabels(["Data", "Custo", "Descrição"])
+            os_table.setRowCount(len(item["os"]))
+            os_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+            os_table.setFixedHeight(150)
+            os_table.verticalHeader().setVisible(False)
+            os_table.setStyleSheet("QTableWidget { background: #1E293B; }")
+            
+            for i, os_item in enumerate(item["os"]):
+                os_table.setItem(i, 0, QTableWidgetItem(os_item["data"]))
+                os_table.setItem(i, 1, QTableWidgetItem(f"R$ {os_item['custo']:,.2f}"))
+                os_table.setItem(i, 2, QTableWidgetItem(os_item["desc"]))
+                
+            layout.addWidget(os_table)
+            
+        btn_close = QPushButton("Fechar")
+        btn_close.clicked.connect(dialog.accept)
+        layout.addWidget(btn_close)
+        
+        dialog.exec()
 
     def eventFilter(self, obj, event):
         if event.type() == QEvent.Resize:
@@ -934,30 +1089,102 @@ class HospitalDashboard(QMainWindow):
                     if gbox == obj: widget.move(gbox.width() - widget.width() - 15, 0)
         return super().eventFilter(obj, event)
 
-    def setup_list_section(self):
-        group = QGroupBox("Gestão Detalhada de Ativos")
-        layout = QVBoxLayout(group)
-        filters = QHBoxLayout(); self.f_modelo = QLineEdit(); self.f_modelo.setPlaceholderText("Filtrar modelo...")
-        self.f_modelo.textChanged.connect(self.apply_filters); self.f_setor = QComboBox()
-        self.f_setor.addItems(["Todos Setores"] + sorted(list(set(i["setor"] for i in MOCK_EQUIPMENT))))
+    def setup_data_tab(self):
+        # Clear layout
+        while self.data_layout.count():
+            item = self.data_layout.takeAt(0)
+            if item.widget(): item.widget().deleteLater()
+            
+        self.data_layout.setSpacing(20)
+        
+        # 1. Equipments Section
+        equip_group = QGroupBox("Listagem de Equipamentos")
+        equip_vbox = QVBoxLayout(equip_group)
+        
+        filters_eq = QHBoxLayout()
+        self.f_modelo = QLineEdit(); self.f_modelo.setPlaceholderText("Filtrar modelo...")
+        self.f_modelo.textChanged.connect(self.apply_filters)
+        self.f_setor = QComboBox()
         self.f_setor.currentIndexChanged.connect(self.apply_filters)
-        filters.addWidget(self.f_modelo); filters.addWidget(self.f_setor); layout.addLayout(filters)
-        self.main_table = QTableWidget(); self.main_table.setColumnCount(5)
-        self.main_table.setHorizontalHeaderLabels(["Modelo", "Setor", "Crit.", "Aquisição", "Status"])
-        self.main_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-        self.main_table.setFixedHeight(300); self.main_table.verticalHeader().setVisible(False)
-        layout.addWidget(self.main_table); self.apply_filters(); self.data_layout.addWidget(group)
+        filters_eq.addWidget(self.f_modelo)
+        filters_eq.addWidget(self.f_setor)
+        equip_vbox.addLayout(filters_eq)
+        
+        self.equip_table = QTableWidget()
+        self.equip_table.setColumnCount(6)
+        self.equip_table.setHorizontalHeaderLabels(["Identificador", "Modelo", "Setor", "Crit.", "Aquisição", "Status"])
+        self.equip_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.equip_table.setFixedHeight(300)
+        equip_vbox.addWidget(self.equip_table)
+        
+        self.data_layout.addWidget(equip_group)
+        
+        # 2. OS Section
+        os_group = QGroupBox("Listagem de Ordens de Serviço")
+        os_vbox = QVBoxLayout(os_group)
+        
+        filters_os = QHBoxLayout()
+        self.f_os_id = QLineEdit(); self.f_os_id.setPlaceholderText("Filtrar Identificador...")
+        self.f_os_id.textChanged.connect(self.apply_filters)
+        self.f_os_min_cost = QSpinBox(); self.f_os_min_cost.setRange(0, 1000000); self.f_os_min_cost.setPrefix("Custo Min: R$ ")
+        self.f_os_min_cost.valueChanged.connect(self.apply_filters)
+        
+        filters_os.addWidget(self.f_os_id)
+        filters_os.addWidget(self.f_os_min_cost)
+        os_vbox.addLayout(filters_os)
+        
+        self.os_table = QTableWidget()
+        self.os_table.setColumnCount(5)
+        self.os_table.setHorizontalHeaderLabels(["ID Equip.", "Modelo", "Data", "Custo", "Descrição"])
+        self.os_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.os_table.setFixedHeight(300)
+        os_vbox.addWidget(self.os_table)
+        
+        self.data_layout.addWidget(os_group)
         self.data_layout.addStretch()
 
     def apply_filters(self):
-        filtered = MOCK_EQUIPMENT
-        if self.f_modelo.text(): filtered = [i for i in filtered if self.f_modelo.text().lower() in i["modelo"].lower()]
-        if self.f_setor.currentText() != "Todos Setores": filtered = [i for i in filtered if i["setor"] == self.f_setor.currentText()]
-        self.main_table.setRowCount(len(filtered))
-        for r, item in enumerate(filtered):
-            self.main_table.setItem(r, 0, QTableWidgetItem(item["modelo"])); self.main_table.setItem(r, 1, QTableWidgetItem(item["setor"]))
-            self.main_table.setItem(r, 2, QTableWidgetItem(str(item["criticidade"]))); self.main_table.setItem(r, 3, QTableWidgetItem(item["data_aquisicao"]))
-            self.main_table.setItem(r, 4, QTableWidgetItem(item["status"]))
+        # 1. Filter Equipments
+        filtered_eq = self.equipment_data
+        if self.f_modelo.text():
+            filtered_eq = [i for i in filtered_eq if self.f_modelo.text().lower() in i["modelo"].lower()]
+        if self.f_setor.currentText() != "Todos Setores":
+            filtered_eq = [i for i in filtered_eq if i["setor"] == self.f_setor.currentText()]
+            
+        self.equip_table.setRowCount(len(filtered_eq))
+        for r, item in enumerate(filtered_eq):
+            self.equip_table.setItem(r, 0, QTableWidgetItem(item.get("identificador", "N/A")))
+            self.equip_table.setItem(r, 1, QTableWidgetItem(item["modelo"]))
+            self.equip_table.setItem(r, 2, QTableWidgetItem(item["setor"]))
+            self.equip_table.setItem(r, 3, QTableWidgetItem(str(item["criticidade"])))
+            self.equip_table.setItem(r, 4, QTableWidgetItem(item["data_aquisicao"]))
+            self.equip_table.setItem(r, 5, QTableWidgetItem(item["status"]))
+
+        # 2. Filter OS
+        all_os = []
+        for eq in self.equipment_data:
+            for os_item in eq.get("os", []):
+                all_os.append({
+                    "id": eq.get("identificador", "N/A"),
+                    "modelo": eq["modelo"],
+                    "data": os_item["data"],
+                    "custo": os_item["custo"],
+                    "desc": os_item["desc"]
+                })
+                
+        filtered_os = all_os
+        if self.f_os_id.text():
+            filtered_os = [i for i in filtered_os if self.f_os_id.text().lower() in i["id"].lower()]
+        if self.f_os_min_cost.value() > 0:
+            filtered_os = [i for i in filtered_os if i["custo"] >= self.f_os_min_cost.value()]
+            
+        self.os_table.setRowCount(len(filtered_os))
+        for r, item in enumerate(filtered_os):
+            self.os_table.setItem(r, 0, QTableWidgetItem(item["id"]))
+            self.os_table.setItem(r, 1, QTableWidgetItem(item["modelo"]))
+            self.os_table.setItem(r, 2, QTableWidgetItem(item["data"]))
+            self.os_table.setItem(r, 3, QTableWidgetItem(f"R$ {item['custo']:,.2f}"))
+            self.os_table.setItem(r, 4, QTableWidgetItem(item["desc"]))
 
 def main():
     app = QApplication(sys.argv)

@@ -166,7 +166,7 @@ def adicionar_custo_e_dados_finais(df_inventario_com_criticidade, df_servicos_mi
     return df_final[colunas_existentes]
 
 
-def calcular_prioridade_e_ordenar(df):
+def calcular_prioridade_e_ordenar(df, anos_limite=10):
     """
     Passo 5: Calcula a pontuação de prioridade para cada equipamento,
     adiciona a coluna 'Peso' e ordena o DataFrame.
@@ -223,7 +223,7 @@ def calcular_prioridade_e_ordenar(df):
     return df_final_ordenado
 
 
-def analisar_idade_equipamentos(df):
+def analisar_idade_equipamentos(df, anos_limite=10):
     """
     Passo Extra: Analisa a idade dos equipamentos, calcula percentuais
     e lista os itens em cada categoria de idade.
@@ -242,7 +242,7 @@ def analisar_idade_equipamentos(df):
     df_analise.dropna(subset=['Data de Aquisição'], inplace=True)
 
     # Calcula a idade e define o critério de 10 anos
-    data_limite = datetime.now() - pd.DateOffset(years=10)
+    data_limite = datetime.now() - pd.DateOffset(years=anos_limite)
     df_analise['Mais de 10 anos'] = df_analise['Data de Aquisição'] < data_limite
 
     # 1. Calcular e exibir os percentuais

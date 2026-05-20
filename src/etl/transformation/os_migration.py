@@ -1,11 +1,10 @@
 import pandas as pd
+import numpy as np
 
 def migrar_dados_servico(caminho_os_antiga=None, caminho_os_atual=None):
     """
     Migra e unifica os dados das ordens de serviço antigas e recentes
     para um novo formato em um único DataFrame.
-    
-    Aceita pelo menos uma das planilhas. Ignora e sinaliza caso uma esteja faltando.
     """
     if not caminho_os_antiga and not caminho_os_atual:
         raise ValueError("Pelo menos um arquivo de Ordens de Serviço (antigo ou atual) deve ser fornecido.")
@@ -17,112 +16,108 @@ def migrar_dados_servico(caminho_os_antiga=None, caminho_os_atual=None):
     if caminho_os_atual:
         try:
             df_recente = pd.read_csv(caminho_os_atual, sep=';', engine='python')
-            print(f"Planilha atual carregada: {caminho_os_atual}")
-        except FileNotFoundError:
-            print(f"Aviso: Planilha de OS atual não encontrada em '{caminho_os_atual}'.")
+            print(f"DEBUG: Planilha atual carregada: {len(df_recente)} linhas.")
+        except Exception as e:
+            print(f"Aviso: Erro ao carregar planilha de OS atual: {e}")
 
     # 2. Carregar planilha antiga (se fornecida)
     if caminho_os_antiga:
         try:
-            # O formato antigo usa skiprows=[0]
             df_contrato_sl = pd.read_csv(caminho_os_antiga, sep=';', skiprows=[0], engine='python')
-            print(f"Planilha antiga carregada: {caminho_os_antiga}")
-        except FileNotFoundError:
-            print(f"Aviso: Planilha de OS antiga não encontrada em '{caminho_os_antiga}'.")
+            print(f"DEBUG: Planilha antiga carregada: {len(df_contrato_sl)} linhas.")
+        except Exception as e:
+            print(f"Aviso: Erro ao carregar planilha de OS antiga: {e}")
 
-    # Se ambas falharem na leitura por arquivo inexistente apesar de o path ser fornecido
     if df_recente.empty and df_contrato_sl.empty:
         raise ValueError("Nenhum dado pôde ser extraído das planilhas fornecidas.")
 
-    # 3. Estabelecer o esquema base
-    colunas_esperadas = [
-        'OS', 'Equipamento', 'Modelo', 'Fabricante', 'Abertura', 'Fechamento', 
-        'Serviço;Assistência', 'Custo', 'Identificador (Patrimônio, ID, TAG)'
-    ]
+    # 3. Mapeamento
+    # Mapeamos colunas de ambos os formatos para um formato padrão interno
+    mapeamento_recente = {
+        'O.S': 'OS',
+        'Tipo': 'Equipamento',
+        'Data Início SE': 'Abertura',
+        'Data Conclusão SE': 'Fechamento',
+        'Fornecedor': 'Serviço;Assistência',
+        'Identificador (Patrimônio, ID, TAG)': 'Identificador'
+    }
     
-    if not df_recente.empty:
-        df_migrado = df_recente.copy()
-        if 'Identificador (Patrimônio, ID, TAG)' not in df_migrado.columns:
-            df_migrado['Identificador (Patrimônio, ID, TAG)'] = ''
-    else:
-        # Cria um DataFrame vazio com a estrutura das colunas modernas caso só tenha a velha
-        df_migrado = pd.DataFrame(columns=colunas_esperadas)
-
-    # 4. Mapeamento do formato legado para o novo formato
-    mapeamento = {
-        'O.S': 'OS', 'Tipo': 'Equipamento', 'Modelo': 'Modelo', 'Marca': 'Fabricante',
-        'Data Início SE': 'Abertura', 'Data Conclusão SE': 'Fechamento',
-        'Fornecedor': 'Serviço;Assistência', 'Custo': 'Custo'
+    mapeamento_antigo = {
+        'Serviço': 'Serviço;Assistência' # Simplificação, pois o antigo tem duas colunas
     }
 
-    # Renomear colunas para garantir padronização, inclusive no dataframe recente caso use nomenclatura antiga
-    df_migrado.rename(columns=mapeamento, inplace=True)
-
-    # 5. Iterar e injetar linhas antigas, se existirem
-    novas_linhas = []
-    if not df_contrato_sl.empty:
-        # Renomear as colunas do df antigo também pelo mapeamento caso existam
-        df_contrato_sl.rename(columns=mapeamento, inplace=True)
-        
-        for _, row in df_contrato_sl.iterrows():
-            nova_linha = {col: None for col in df_migrado.columns}
-            
-            # Transfere diretamente as colunas que possuem o nome padronizado
-            for col_padrao in df_migrado.columns:
-                if col_padrao in row:
-                    nova_linha[col_padrao] = row[col_padrao]
-            
-            # Gera o Identificador único a partir da TAG + Patrimônio
-            tag = str(row['TAG']) if 'TAG' in row and pd.notna(row['TAG']) else ''
-            patrimonio = str(row['Patrimônio']) if 'Patrimônio' in row and pd.notna(row['Patrimônio']) else ''
-            identificador = f"{tag},{patrimonio}" if tag and patrimonio else tag or patrimonio
-            
-            nova_linha['Identificador (Patrimônio, ID, TAG)'] = identificador
-            novas_linhas.append(nova_linha)
-
-    # 6. Concatena os DataFrames
-    if novas_linhas:
-        df_migrado = pd.concat([df_migrado, pd.DataFrame(novas_linhas)], ignore_index=True)
+    # Processar Recente
+    if not df_recente.empty:
+        df_recente.rename(columns=mapeamento_recente, inplace=True)
+        if 'Identificador' not in df_recente.columns:
+            df_recente['Identificador'] = ''
     
-    print("Processamento de Ordens de Serviço finalizado.")
+    # Processar Antigo
+    if not df_contrato_sl.empty:
+        df_contrato_sl.rename(columns=mapeamento_antigo, inplace=True)
+        # Gerar Identificador
+        def gerar_identificador(row):
+            tag = str(row['TAG']) if 'TAG' in row and pd.notna(row['TAG']) else ''
+            pat = str(row['Patrimônio']) if 'Patrimônio' in row and pd.notna(row['Patrimônio']) else ''
+            if tag and pat: return f"{tag},{pat}"
+            return tag or pat
+        
+        df_contrato_sl['Identificador'] = df_contrato_sl.apply(gerar_identificador, axis=1)
+
+    # 4. Unificar
+    # Usamos as colunas do df_recente como base se existir, senão as do antigo
+    if not df_recente.empty:
+        df_migrado = df_recente.copy()
+        if not df_contrato_sl.empty:
+            # Garantir que df_contrato_sl tenha as mesmas colunas (pelo menos as essenciais)
+            for col in df_migrado.columns:
+                if col not in df_contrato_sl.columns:
+                    df_contrato_sl[col] = np.nan
+            
+            df_migrado = pd.concat([df_migrado, df_contrato_sl[df_migrado.columns]], ignore_index=True)
+    else:
+        df_migrado = df_contrato_sl.copy()
+
+    print(f"DEBUG: Processamento de Ordens de Serviço finalizado. Total: {len(df_migrado)} linhas.")
     return df_migrado
 
 def obter_total_os_emitidas(df):
-    """Retorna o total de ordens de serviço emitidas."""
     return len(df)
 
 def obter_total_gasto_os(df):
-    """Calcula e retorna o total gasto em ordens de serviço."""
     if 'Custo' in df.columns:
         df_custo = df['Custo'].copy()
-        # Converte para string e limpa os caracteres monetários
         df_custo = df_custo.astype(str).str.replace(r'[^\d,\.]', '', regex=True)
-        # Substitui vírgula por ponto se necessário, em casos gerais do brasil
         df_custo = df_custo.str.replace(',', '.')
-        # Como as vezes pode ficar com mais de um ponto (ex 1.000.00), é melhor uma limpeza robusta
-        # mas como simplificação, coerce é usado:
         custo_num = pd.to_numeric(df_custo, errors='coerce').fillna(0)
         return float(custo_num.sum())
     return 0.0
 
 def extrair_historico_os(df, excluir_custo_zero=False):
-    """Extrai os dados para alimentar o gráfico de histórico de emissão de OS."""
     if 'Abertura' in df.columns:
         df_temp = df.copy()
+        
+        # Limpeza robusta de custo para filtro
         if excluir_custo_zero and 'Custo' in df_temp.columns:
             custo_str = df_temp['Custo'].astype(str).str.replace(r'[^\d,\.]', '', regex=True).str.replace(',', '.')
             custo_num = pd.to_numeric(custo_str, errors='coerce').fillna(0)
             df_temp = df_temp[custo_num > 0]
             
+        # Conversão de data flexível
+        # Tentamos primeiro o formato DD/MM/YYYY que é comum no legado
+        # dayfirst=True ajuda muito aqui.
         df_temp['Data'] = pd.to_datetime(df_temp['Abertura'], errors='coerce', dayfirst=True)
+        
+        dropped = df_temp['Data'].isna().sum()
+        if dropped > 0:
+            print(f"DEBUG: {dropped} linhas de OS descartadas por erro na data.")
+            
         df_temp = df_temp.dropna(subset=['Data'])
         df_temp['Ano'] = df_temp['Data'].dt.year.astype(int)
         df_temp['Mes'] = df_temp['Data'].dt.month.astype(int)
         
         historico = df_temp.groupby(['Ano', 'Mes']).size().reset_index(name='Contagem')
         
-        # Converte para um dicionário no formato {ano: {mes: contagem}}
-        # Isso facilita o uso direto no PySide6 para popular QLineSeries por ano
         resultado = {}
         for _, row in historico.iterrows():
             y = int(row['Ano'])

@@ -1,42 +1,6 @@
 [
     {
         "equip": "",
-        "os_antiga": "/home/carlos/Documentos/ETL/src/etl/data/Corretivas_Externas_2018_a_2024.csv",
-        "os_atual": "",
-        "date": "2026-05-20 11:18:07"
-    },
-    {
-        "equip": "",
-        "os_antiga": "",
-        "os_atual": "/home/carlos/Documentos/ETL/src/etl/data/ServicoExternoPeriodo20251113092221.csv",
-        "date": "2026-05-20 11:26:32"
-    },
-    {
-        "equip": "",
-        "os_antiga": "/home/carlos/Documentos/ETL/src/etl/data/Corretivas_Externas_2018_a_2024.csv",
-        "os_atual": "",
-        "date": "2026-05-20 11:28:02"
-    },
-    {
-        "equip": "",
-        "os_antiga": "/home/carlos/Documentos/ETL/src/etl/data/Corretivas_Externas_2018_a_2024.csv",
-        "os_atual": "/home/carlos/Documentos/ETL/src/etl/data/ServicoExternoPeriodo20251113092221.csv",
-        "date": "2026-05-20 11:28:32"
-    },
-    {
-        "equip": "",
-        "os_antiga": "",
-        "os_atual": "/home/carlos/Documentos/ETL/src/etl/data/Corretivas_Externas_2018_a_2024.csv",
-        "date": "2026-05-20 11:30:27"
-    },
-    {
-        "equip": "",
-        "os_antiga": "/home/carlos/Documentos/ETL/src/etl/data/Corretivas_Externas_2018_a_2024.csv",
-        "os_atual": "",
-        "date": "2026-05-20 11:30:46"
-    },
-    {
-        "equip": "",
         "os_antiga": "/home/carlos/Documentos/ETL/src/etl/data/Corretivas_Internas_2018_a_2024.csv",
         "os_atual": "",
         "date": "2026-05-20 11:36:04"
@@ -58,5 +22,47 @@
         "os_antiga": "/home/carlos/Documentos/ETL/src/etl/data/Corretivas_Externas_2018_a_2024.csv",
         "os_atual": "",
         "date": "2026-05-20 11:46:02"
+    },
+    {
+        "equip": "/home/carlos/Documentos/ETL/src/etl/data/Inventario_HC_UFPE.csv",
+        "crit": "/home/carlos/Documentos/TCC/projeto/planilhas/Novos dados - criticidade/planilha de equipamentos final.csv",
+        "os_antiga": "/home/carlos/Documentos/TCC/projeto/planilhas/Corretivas_Externas_2018_a_2024.csv",
+        "os_atual": "/home/carlos/Documentos/TCC/projeto/planilhas/ServicoExternoPeriodo20251113092221.csv",
+        "date": "2026-05-20 12:21:19"
+    },
+    {
+        "equip": "",
+        "crit": "",
+        "os_antiga": "/home/carlos/Documentos/ETL/src/etl/data/Corretivas_Externas_2018_a_2024.csv",
+        "os_atual": "",
+        "date": "2026-05-20 12:48:57"
+    },
+    {
+        "equip": "/home/carlos/Documentos/ETL/src/etl/data/Inventario_HC_UFPE.csv",
+        "crit": "/home/carlos/Documentos/TCC/projeto/planilhas/Novos dados - criticidade/planilha de equipamentos final.csv",
+        "os_antiga": "/home/carlos/Documentos/TCC/projeto/planilhas/Corretivas_Externas_2018_a_2024.csv",
+        "os_atual": "/home/carlos/Documentos/TCC/projeto/planilhas/ServicoExternoPeriodo20251113092221.csv",
+        "date": "2026-05-20 13:00:39"
+    },
+    {
+        "equip": "/home/carlos/Documentos/ETL/src/etl/data/Inventario_HC_UFPE.csv",
+        "crit": "/home/carlos/Documentos/TCC/projeto/planilhas/Novos dados - criticidade/planilha de equipamentos final.csv",
+        "os_antiga": "",
+        "os_atual": "/home/carlos/Documentos/TCC/projeto/planilhas/ServicoExternoPeriodo20251113092221.csv",
+        "date": "2026-05-20 13:00:53"
+    },
+    {
+        "equip": "/home/carlos/Documentos/ETL/src/etl/data/Inventario_HC_UFPE.csv",
+        "crit": "/home/carlos/Documentos/TCC/projeto/planilhas/Novos dados - criticidade/planilha de equipamentos final.csv",
+        "os_antiga": "/home/carlos/Documentos/TCC/projeto/planilhas/Corretivas_Externas_2018_a_2024.csv",
+        "os_atual": "/home/carlos/Documentos/TCC/projeto/planilhas/ServicoExternoPeriodo20251113092221.csv",
+        "date": "2026-05-20 15:36:38"
+    },
+    {
+        "equip": "/home/carlos/Documentos/ETL/src/etl/data/Inventario_HC_UFPE.csv",
+        "crit": "/home/carlos/Documentos/TCC/projeto/planilhas/Novos dados - criticidade/planilha de equipamentos final.csv",
+        "os_antiga": "/home/carlos/Documentos/TCC/projeto/planilhas/Corretivas_Externas_2018_a_2024.csv",
+        "os_atual": "",
+        "date": "2026-05-20 15:58:32"
     }
 ]

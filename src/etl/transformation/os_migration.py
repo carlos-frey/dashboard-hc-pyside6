@@ -55,16 +55,22 @@ def migrar_dados_servico(caminho_os_antiga=None, caminho_os_atual=None):
         'Fornecedor': 'Serviço;Assistência', 'Custo': 'Custo'
     }
 
+    # Renomear colunas para garantir padronização, inclusive no dataframe recente caso use nomenclatura antiga
+    df_migrado.rename(columns=mapeamento, inplace=True)
+
     # 5. Iterar e injetar linhas antigas, se existirem
     novas_linhas = []
     if not df_contrato_sl.empty:
+        # Renomear as colunas do df antigo também pelo mapeamento caso existam
+        df_contrato_sl.rename(columns=mapeamento, inplace=True)
+        
         for _, row in df_contrato_sl.iterrows():
             nova_linha = {col: None for col in df_migrado.columns}
             
-            # Aplica o de-para iterativo
-            for col_recente, col_sl in mapeamento.items():
-                if col_sl in row:
-                    nova_linha[col_recente] = row[col_sl]
+            # Transfere diretamente as colunas que possuem o nome padronizado
+            for col_padrao in df_migrado.columns:
+                if col_padrao in row:
+                    nova_linha[col_padrao] = row[col_padrao]
             
             # Gera o Identificador único a partir da TAG + Patrimônio
             tag = str(row['TAG']) if 'TAG' in row and pd.notna(row['TAG']) else ''
@@ -99,15 +105,32 @@ def obter_total_gasto_os(df):
         return float(custo_num.sum())
     return 0.0
 
-def extrair_historico_os(df):
+def extrair_historico_os(df, excluir_custo_zero=False):
     """Extrai os dados para alimentar o gráfico de histórico de emissão de OS."""
     if 'Abertura' in df.columns:
-        df_temp = pd.DataFrame()
-        df_temp['Data'] = pd.to_datetime(df['Abertura'], errors='coerce')
+        df_temp = df.copy()
+        if excluir_custo_zero and 'Custo' in df_temp.columns:
+            custo_str = df_temp['Custo'].astype(str).str.replace(r'[^\d,\.]', '', regex=True).str.replace(',', '.')
+            custo_num = pd.to_numeric(custo_str, errors='coerce').fillna(0)
+            df_temp = df_temp[custo_num > 0]
+            
+        df_temp['Data'] = pd.to_datetime(df_temp['Abertura'], errors='coerce', dayfirst=True)
         df_temp = df_temp.dropna(subset=['Data'])
-        df_temp['Ano'] = df_temp['Data'].dt.year
-        df_temp['Mes'] = df_temp['Data'].dt.month
+        df_temp['Ano'] = df_temp['Data'].dt.year.astype(int)
+        df_temp['Mes'] = df_temp['Data'].dt.month.astype(int)
         
         historico = df_temp.groupby(['Ano', 'Mes']).size().reset_index(name='Contagem')
-        return historico
-    return pd.DataFrame()
+        
+        # Converte para um dicionário no formato {ano: {mes: contagem}}
+        # Isso facilita o uso direto no PySide6 para popular QLineSeries por ano
+        resultado = {}
+        for _, row in historico.iterrows():
+            y = int(row['Ano'])
+            m = int(row['Mes'])
+            c = int(row['Contagem'])
+            if y not in resultado:
+                resultado[y] = {m_idx: 0 for m_idx in range(1, 13)}
+            resultado[y][m] = c
+            
+        return resultado
+    return {}

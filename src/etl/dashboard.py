@@ -119,6 +119,50 @@ class CrosshairChartView(QChartView):
             self._v_line.hide()
         super().leaveEvent(event)
 
+class DataPreviewDialog(QDialog):
+    def __init__(self, df, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Pré-visualização dos Dados")
+        self.resize(1000, 600)
+        self.setStyleSheet("QDialog { background-color: #0F172A; }")
+        
+        layout = QVBoxLayout(self)
+        
+        lbl = QLabel("Verifique se os dados abaixo estão corretos antes de acessar o dashboard:")
+        lbl.setStyleSheet("font-size: 16px; font-weight: bold; color: #F8FAFC;")
+        layout.addWidget(lbl)
+        
+        table = QTableWidget()
+        table.setStyleSheet("QTableWidget { background-color: #1E293B; color: #F8FAFC; gridline-color: #334155; } QHeaderView::section { background-color: #334155; color: #F8FAFC; }")
+        
+        display_df = df.head(100) # Mostrar apenas as primeiras 100 linhas para não travar
+        table.setRowCount(len(display_df))
+        table.setColumnCount(len(df.columns))
+        table.setHorizontalHeaderLabels([str(c) for c in df.columns])
+        
+        for i, row in display_df.reset_index(drop=True).iterrows():
+            for j, col in enumerate(df.columns):
+                val = row[col]
+                item = QTableWidgetItem("" if pd.isna(val) else str(val))
+                table.setItem(i, j, item)
+                
+        table.resizeColumnsToContents()
+        layout.addWidget(table)
+        
+        btn_layout = QHBoxLayout()
+        btn_cancel = QPushButton("Cancelar")
+        btn_cancel.setStyleSheet("QPushButton { background-color: #EF4444; color: white; padding: 10px 20px; border-radius: 4px; font-weight: bold; } QPushButton:hover { background-color: #DC2626; }")
+        btn_cancel.clicked.connect(self.reject)
+        
+        btn_confirm = QPushButton("Confirmar")
+        btn_confirm.setStyleSheet("QPushButton { background-color: #10B981; color: white; padding: 10px 20px; border-radius: 4px; font-weight: bold; } QPushButton:hover { background-color: #059669; }")
+        btn_confirm.clicked.connect(self.accept)
+        
+        btn_layout.addStretch()
+        btn_layout.addWidget(btn_cancel)
+        btn_layout.addWidget(btn_confirm)
+        layout.addLayout(btn_layout)
+
 class HospitalDashboard(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -195,15 +239,15 @@ class HospitalDashboard(QMainWindow):
     def setup_import_page(self):
         page = QWidget()
         layout = QVBoxLayout(page)
-        layout.setAlignment(Qt.AlignCenter)
-        layout.setSpacing(30)
+        
+        layout.addStretch()
         
         container = QFrame()
         container.setStyleSheet("QFrame { background-color: #1E293B; border-radius: 12px; border: 1px solid #334155; }")
-        container.setFixedWidth(500)
+        container.setFixedWidth(550)
         c_layout = QVBoxLayout(container)
-        c_layout.setContentsMargins(40, 40, 40, 40)
-        c_layout.setSpacing(20)
+        c_layout.setContentsMargins(30, 30, 30, 30)
+        c_layout.setSpacing(15)
         
         title = QLabel("Importação de Dados")
         title.setStyleSheet("font-size: 24px; font-weight: bold; color: #F8FAFC; border: none;")
@@ -260,6 +304,12 @@ class HospitalDashboard(QMainWindow):
         btn_run.clicked.connect(self.load_data)
         c_layout.addWidget(btn_run)
         
+        # Export button
+        btn_export = QPushButton("Exportar Dados Consolidados (CSV)")
+        btn_export.setStyleSheet("QPushButton { background: #10B981; color: white; padding: 15px; border-radius: 6px; font-size: 16px; font-weight: bold; } QPushButton:hover { background: #059669; }")
+        btn_export.clicked.connect(self.export_data)
+        c_layout.addWidget(btn_export)
+        
         # Histórico
         self.history_path_file = os.path.join(os.path.dirname(__file__), 'data', 'history.json')
         history_title = QLabel("Histórico de Importações Recentes:")
@@ -277,7 +327,8 @@ class HospitalDashboard(QMainWindow):
         
         self.populate_history()
         
-        layout.addWidget(container)
+        layout.addWidget(container, alignment=Qt.AlignHCenter)
+        layout.addStretch()
         self.root_stack.addWidget(page)
         
     def populate_history(self):
@@ -287,9 +338,19 @@ class HospitalDashboard(QMainWindow):
                 with open(self.history_path_file, 'r', encoding='utf-8') as f:
                     history = json.load(f)
                     for item in reversed(history):  # Mostrar mais recentes primeiro
-                        equip = item.get('equip', 'N/A')
+                        equip = item.get('equip', '')
+                        os_antiga = item.get('os_antiga', '')
+                        os_atual = item.get('os_atual', '')
                         d = item.get('date', '')
-                        display_text = f"[{d}] {os.path.basename(equip) if equip != 'N/A' else 'Sem eq'}"
+                        
+                        nomes = []
+                        if os_atual: nomes.append(os.path.basename(os_atual))
+                        if os_antiga: nomes.append(os.path.basename(os_antiga))
+                        if equip and equip != 'N/A': nomes.append(os.path.basename(equip))
+                        
+                        nome_display = " + ".join(nomes) if nomes else "Arquivos não especificados"
+                        display_text = f"[{d}] {nome_display}"
+                        
                         list_item = QListWidgetItem(display_text)
                         list_item.setData(Qt.UserRole, item)
                         self.history_list.addItem(list_item)
@@ -334,6 +395,23 @@ class HospitalDashboard(QMainWindow):
                 json.dump(history, f, indent=4, ensure_ascii=False)
             self.populate_history()
 
+    def export_data(self):
+        try:
+            df_os = migrar_dados_servico(
+                caminho_os_antiga=self.os_antiga_path.text() or None,
+                caminho_os_atual=self.os_atual_path.text() or None
+            )
+            if df_os.empty:
+                QMessageBox.warning(self, "Aviso", "Nenhum dado retornado para exportação.")
+                return
+                
+            save_path, _ = QFileDialog.getSaveFileName(self, "Salvar Dados Consolidados", "dados_consolidados.csv", "CSV Files (*.csv)")
+            if save_path:
+                df_os.to_csv(save_path, index=False, sep=';', encoding='utf-8')
+                QMessageBox.information(self, "Sucesso", f"Dados exportados com sucesso para:\n{save_path}")
+        except Exception as e:
+            QMessageBox.warning(self, "Erro", f"Ocorreu um erro ao exportar: {e}")
+
     def load_data(self):
         try:
             self.df_os = migrar_dados_servico(
@@ -341,6 +419,12 @@ class HospitalDashboard(QMainWindow):
                 caminho_os_atual=self.os_atual_path.text() or None
             )
             self.save_history()
+
+            if not self.df_os.empty:
+                dialog = DataPreviewDialog(self.df_os, self)
+                if dialog.exec() != QDialog.Accepted:
+                    return
+
         except Exception as e:
             QMessageBox.warning(self, "Aviso", f"Não foi possível carregar os dados OS.\nUsando dados MOCK.\n\nDetalhe: {e}")
             self.df_os = pd.DataFrame()
@@ -461,11 +545,26 @@ class HospitalDashboard(QMainWindow):
         chart_vbox = QVBoxLayout(self.history_group)
         chart_vbox.setContentsMargins(24, 24, 24, 24)
         
+        # Filtro de Custo
+        filter_layout = QHBoxLayout()
+        self.cb_excluir_custo_zero = QCheckBox("Excluir OS com Custo = 0")
+        self.cb_excluir_custo_zero.setStyleSheet("color: #94A3B8; font-weight: normal;")
+        self.cb_excluir_custo_zero.stateChanged.connect(self.update_global_chart)
+        filter_layout.addStretch()
+        filter_layout.addWidget(self.cb_excluir_custo_zero)
+        chart_vbox.addLayout(filter_layout)
+        
         self.global_chart_view = CrosshairChartView()
         self.global_chart_view.setRenderHint(QPainter.Antialiasing)
         self.global_chart_view.setStyleSheet("background: transparent;")
         self.global_chart_view.setFixedHeight(300)
         chart_vbox.addWidget(self.global_chart_view)
+
+        # Table for the time-series data
+        self.history_table = QTableWidget()
+        self.history_table.setStyleSheet("QTableWidget { background-color: #1E293B; gridline-color: #334155; border: 1px solid #334155; border-radius: 4px; color: #F8FAFC; } QHeaderView::section { background-color: #334155; color: #F8FAFC; border: none; font-weight: bold; padding: 4px; }")
+        self.history_table.setFixedHeight(200)
+        chart_vbox.addWidget(self.history_table)
         
         self.update_global_chart()
         self.analysis_layout.addWidget(self.history_group)
@@ -648,26 +747,32 @@ class HospitalDashboard(QMainWindow):
         colors = ["#10B981", "#3B82F6", "#F59E0B", "#EF4444", "#8B5CF6", "#EC4899", "#14B8A6"]
         
         all_years = list(range(2018, 2025))
-        year_data = {y: {m: 0 for m in range(1, 13)} for y in all_years}
         
         usando_mock = True
         if hasattr(self, 'df_os') and not self.df_os.empty:
-            df_hist = extrair_historico_os(self.df_os)
-            if not df_hist.empty:
+            excluir_zero = hasattr(self, 'cb_excluir_custo_zero') and self.cb_excluir_custo_zero.isChecked()
+            dict_hist = extrair_historico_os(self.df_os, excluir_zero)
+            if dict_hist:
                 usando_mock = False
-                all_years = sorted(df_hist['Ano'].unique().tolist())
-                # Adiciona anos que podem existir além dos mocks originais ao active_years para visualização
-                for py in all_years:
-                    self.active_years.add(py)
+                all_years = sorted(dict_hist.keys())
+                
+                if not hasattr(self, '_current_data_years') or self._current_data_years != all_years:
+                    self.active_years = set(all_years)
+                    self._current_data_years = all_years
+                    
                 year_data = {y: {m: 0 for m in range(1, 13)} for y in all_years}
-                for _, row in df_hist.iterrows():
-                    y = int(row['Ano'])
-                    m = int(row['Mes'])
-                    c = int(row['Contagem'])
-                    if y in year_data:
+                for y, m_data in dict_hist.items():
+                    for m, c in m_data.items():
                         year_data[y][m] = c
                         
         if usando_mock:
+            all_years = list(range(2018, 2025))
+            if not hasattr(self, '_current_data_years') or self._current_data_years != all_years:
+                self.active_years = set(all_years)
+                self._current_data_years = all_years
+                
+            year_data = {y: {m: 0 for m in range(1, 13)} for y in all_years}
+            
             self.history_group.setTitle("Histórico de Emissão de OS (Mockado)")
             for equip in MOCK_EQUIPMENT:
                 for os in equip["os"]:
@@ -696,9 +801,9 @@ class HospitalDashboard(QMainWindow):
             for month in range(1, 13):
                 val = year_data[year][month]
                 series.append(month - 1, val)
+                if val > max_val: max_val = val
                 if year in self.active_years:
                     averages[month] += val
-                    if val > max_val: max_val = val
             chart.addSeries(series); series.attachAxis(axis_x)
             if year not in self.active_years:
                 series.setVisible(False)
@@ -716,7 +821,9 @@ class HospitalDashboard(QMainWindow):
         chart.addAxis(axis_y, Qt.AlignLeft)
         for series in chart.series():
             series.attachAxis(axis_y)
-        axis_y.setRange(0, max_val + 2)
+            
+        teto_grafico = max(5, int(max_val * 1.15))
+        axis_y.setRange(0, teto_grafico)
         
         chart.legend().setVisible(True)
         chart.legend().setAlignment(Qt.AlignBottom)
@@ -741,6 +848,31 @@ class HospitalDashboard(QMainWindow):
             marker.clicked.connect(self.handle_year_legend_click)
         
         self.global_chart_view.setChart(chart)
+        
+        # Populate history table
+        meses = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"]
+        self.history_table.setColumnCount(len(meses) + 2) # Meses + Total + Média
+        self.history_table.setHorizontalHeaderLabels(meses + ["Total", "Média"])
+        self.history_table.setRowCount(len(all_years))
+        self.history_table.setVerticalHeaderLabels([str(y) for y in all_years])
+        
+        for i, year in enumerate(all_years):
+            total_ano = sum(year_data[year][m] for m in range(1, 13))
+            media_ano = total_ano / 12
+            for m in range(1, 13):
+                item = QTableWidgetItem(str(year_data[year][m]))
+                item.setTextAlignment(Qt.AlignCenter)
+                self.history_table.setItem(i, m - 1, item)
+            
+            # Total
+            item_total = QTableWidgetItem(str(total_ano))
+            item_total.setTextAlignment(Qt.AlignCenter)
+            self.history_table.setItem(i, 12, item_total)
+            
+            # Media
+            item_media = QTableWidgetItem(f"{media_ano:.1f}")
+            item_media.setTextAlignment(Qt.AlignCenter)
+            self.history_table.setItem(i, 13, item_media)
 
     def populate_top5(self):
         sorted_items = sorted(MOCK_EQUIPMENT, key=lambda x: x["score"], reverse=True)[:5]
@@ -815,6 +947,7 @@ class HospitalDashboard(QMainWindow):
         self.main_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.main_table.setFixedHeight(300); self.main_table.verticalHeader().setVisible(False)
         layout.addWidget(self.main_table); self.apply_filters(); self.data_layout.addWidget(group)
+        self.data_layout.addStretch()
 
     def apply_filters(self):
         filtered = MOCK_EQUIPMENT

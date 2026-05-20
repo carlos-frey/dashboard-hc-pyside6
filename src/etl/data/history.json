@@ -1,14 +1,62 @@
 [
     {
         "equip": "",
-        "os_antiga": "",
-        "os_atual": "/home/carlos/Documentos/TCC/projeto/planilhas/Corretivas_Externas_2018_a_2024.csv",
-        "date": "2026-05-19 11:11:15"
+        "os_antiga": "/home/carlos/Documentos/ETL/src/etl/data/Corretivas_Externas_2018_a_2024.csv",
+        "os_atual": "",
+        "date": "2026-05-20 11:18:07"
     },
     {
         "equip": "",
         "os_antiga": "",
-        "os_atual": "/home/carlos/Documentos/TCC/projeto/planilhas/ServicoExternoPeriodo20251113092221.csv",
-        "date": "2026-05-19 11:15:00"
+        "os_atual": "/home/carlos/Documentos/ETL/src/etl/data/ServicoExternoPeriodo20251113092221.csv",
+        "date": "2026-05-20 11:26:32"
+    },
+    {
+        "equip": "",
+        "os_antiga": "/home/carlos/Documentos/ETL/src/etl/data/Corretivas_Externas_2018_a_2024.csv",
+        "os_atual": "",
+        "date": "2026-05-20 11:28:02"
+    },
+    {
+        "equip": "",
+        "os_antiga": "/home/carlos/Documentos/ETL/src/etl/data/Corretivas_Externas_2018_a_2024.csv",
+        "os_atual": "/home/carlos/Documentos/ETL/src/etl/data/ServicoExternoPeriodo20251113092221.csv",
+        "date": "2026-05-20 11:28:32"
+    },
+    {
+        "equip": "",
+        "os_antiga": "",
+        "os_atual": "/home/carlos/Documentos/ETL/src/etl/data/Corretivas_Externas_2018_a_2024.csv",
+        "date": "2026-05-20 11:30:27"
+    },
+    {
+        "equip": "",
+        "os_antiga": "/home/carlos/Documentos/ETL/src/etl/data/Corretivas_Externas_2018_a_2024.csv",
+        "os_atual": "",
+        "date": "2026-05-20 11:30:46"
+    },
+    {
+        "equip": "",
+        "os_antiga": "/home/carlos/Documentos/ETL/src/etl/data/Corretivas_Internas_2018_a_2024.csv",
+        "os_atual": "",
+        "date": "2026-05-20 11:36:04"
+    },
+    {
+        "equip": "",
+        "os_antiga": "/home/carlos/Documentos/ETL/src/etl/data/Corretivas_Externas_2018_a_2024.csv",
+        "os_atual": "",
+        "date": "2026-05-20 11:39:24"
+    },
+    {
+        "equip": "",
+        "os_antiga": "/home/carlos/Documentos/ETL/src/etl/data/Corretivas_Externas_2018_a_2024.csv",
+        "os_atual": "/home/carlos/Documentos/ETL/src/etl/data/ServicoExternoPeriodo20251113092221.csv",
+        "date": "2026-05-20 11:45:46"
+    },
+    {
+        "equip": "",
+        "os_antiga": "/home/carlos/Documentos/ETL/src/etl/data/Corretivas_Externas_2018_a_2024.csv",
+        "os_atual": "",
+        "date": "2026-05-20 11:46:02"
     }
 ]

@@ -1,43 +1,5 @@
 [
     {
-        "equip": "",
-        "os_antiga": "/home/carlos/Documentos/ETL/src/etl/data/Corretivas_Internas_2018_a_2024.csv",
-        "os_atual": "",
-        "date": "2026-05-20 11:36:04"
-    },
-    {
-        "equip": "",
-        "os_antiga": "/home/carlos/Documentos/ETL/src/etl/data/Corretivas_Externas_2018_a_2024.csv",
-        "os_atual": "",
-        "date": "2026-05-20 11:39:24"
-    },
-    {
-        "equip": "",
-        "os_antiga": "/home/carlos/Documentos/ETL/src/etl/data/Corretivas_Externas_2018_a_2024.csv",
-        "os_atual": "/home/carlos/Documentos/ETL/src/etl/data/ServicoExternoPeriodo20251113092221.csv",
-        "date": "2026-05-20 11:45:46"
-    },
-    {
-        "equip": "",
-        "os_antiga": "/home/carlos/Documentos/ETL/src/etl/data/Corretivas_Externas_2018_a_2024.csv",
-        "os_atual": "",
-        "date": "2026-05-20 11:46:02"
-    },
-    {
-        "equip": "/home/carlos/Documentos/ETL/src/etl/data/Inventario_HC_UFPE.csv",
-        "crit": "/home/carlos/Documentos/TCC/projeto/planilhas/Novos dados - criticidade/planilha de equipamentos final.csv",
-        "os_antiga": "/home/carlos/Documentos/TCC/projeto/planilhas/Corretivas_Externas_2018_a_2024.csv",
-        "os_atual": "/home/carlos/Documentos/TCC/projeto/planilhas/ServicoExternoPeriodo20251113092221.csv",
-        "date": "2026-05-20 12:21:19"
-    },
-    {
-        "equip": "",
-        "crit": "",
-        "os_antiga": "/home/carlos/Documentos/ETL/src/etl/data/Corretivas_Externas_2018_a_2024.csv",
-        "os_atual": "",
-        "date": "2026-05-20 12:48:57"
-    },
-    {
         "equip": "/home/carlos/Documentos/ETL/src/etl/data/Inventario_HC_UFPE.csv",
         "crit": "/home/carlos/Documentos/TCC/projeto/planilhas/Novos dados - criticidade/planilha de equipamentos final.csv",
         "os_antiga": "/home/carlos/Documentos/TCC/projeto/planilhas/Corretivas_Externas_2018_a_2024.csv",
@@ -64,5 +26,47 @@
         "os_antiga": "/home/carlos/Documentos/TCC/projeto/planilhas/Corretivas_Externas_2018_a_2024.csv",
         "os_atual": "",
         "date": "2026-05-20 15:58:32"
+    },
+    {
+        "equip": "/home/carlos/Documentos/ETL/src/etl/data/Inventario_HC_UFPE.csv",
+        "crit": "/home/carlos/Documentos/TCC/projeto/planilhas/Novos dados - criticidade/planilha de equipamentos final.csv",
+        "os_antiga": "/home/carlos/Documentos/TCC/projeto/planilhas/Corretivas_Externas_2018_a_2024.csv",
+        "os_atual": "/home/carlos/Documentos/TCC/projeto/planilhas/ServicoExternoPeriodo20251113092221.csv",
+        "date": "2026-05-20 16:13:18"
+    },
+    {
+        "equip": "/home/carlos/Documentos/ETL/src/etl/data/Inventario_HC_UFPE.csv",
+        "crit": "/home/carlos/Documentos/TCC/projeto/planilhas/Novos dados - criticidade/planilha de equipamentos final.csv",
+        "os_antiga": "/home/carlos/Documentos/TCC/projeto/planilhas/Corretivas_Externas_2018_a_2024.csv",
+        "os_atual": "",
+        "date": "2026-05-20 16:23:07"
+    },
+    {
+        "equip": "/home/carlos/Documentos/ETL/src/etl/data/Inventario_HC_UFPE.csv",
+        "crit": "/home/carlos/Documentos/TCC/projeto/planilhas/Novos dados - criticidade/planilha de equipamentos final.csv",
+        "os_antiga": "/home/carlos/Documentos/TCC/projeto/planilhas/Corretivas_Externas_2018_a_2024.csv",
+        "os_atual": "/home/carlos/Documentos/ETL/src/etl/data/ServicoExternoPeriodo20251113092221.csv",
+        "date": "2026-05-20 16:35:46"
+    },
+    {
+        "equip": "/home/carlos/Documentos/ETL/src/etl/data/Inventario_HC_UFPE.csv",
+        "crit": "/home/carlos/Documentos/TCC/projeto/planilhas/Novos dados - criticidade/planilha de equipamentos final.csv",
+        "os_antiga": "/home/carlos/Documentos/TCC/projeto/planilhas/Corretivas_Externas_2018_a_2024.csv",
+        "os_atual": "/home/carlos/Documentos/TCC/projeto/planilhas/ServicoExternoPeriodo20251113092221.csv",
+        "date": "2026-05-20 16:45:02"
+    },
+    {
+        "equip": "/home/carlos/Documentos/ETL/src/etl/data/Inventario_HC_UFPE.csv",
+        "crit": "/home/carlos/Documentos/TCC/projeto/planilhas/Novos dados - criticidade/planilha de equipamentos final.csv",
+        "os_antiga": "/home/carlos/Documentos/TCC/projeto/planilhas/Corretivas_Externas_2018_a_2024.csv",
+        "os_atual": "/home/carlos/Documentos/ETL/src/etl/data/ServicoExternoPeriodo20251113092221.csv",
+        "date": "2026-05-22 10:54:51"
+    },
+    {
+        "equip": "/home/carlos/Documentos/ETL/src/etl/data/Inventario_HC_UFPE.csv",
+        "crit": "/home/carlos/Documentos/TCC/projeto/planilhas/Novos dados - criticidade/planilha de equipamentos final.csv",
+        "os_antiga": "/home/carlos/Documentos/TCC/projeto/planilhas/Corretivas_Externas_2018_a_2024.csv",
+        "os_atual": "",
+        "date": "2026-05-22 10:55:44"
     }
 ]

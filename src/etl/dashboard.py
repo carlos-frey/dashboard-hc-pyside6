@@ -53,27 +53,134 @@ MOCK_EQUIPMENT = [
 ]
 
 DARK_THEME_QSS = """
-QMainWindow, QWidget { background-color: #0F172A; color: #F8FAFC; font-family: 'Inter', 'Segoe UI', Arial; }
-QGroupBox { border: 1px solid #1E293B; border-radius: 6px; margin-top: 15px; font-weight: bold; padding-top: 25px; }
-QGroupBox::title { subcontrol-origin: margin; subcontrol-position: top left; padding: 0 5px; left: 10px; color: #94A3B8; }
-QCheckBox { color: #F8FAFC; spacing: 5px; }
-QCheckBox::indicator { width: 15px; height: 15px; }
-QLineEdit, QComboBox, QDateEdit, QSpinBox { background-color: #1E293B; border: 1px solid #334155; border-radius: 4px; padding: 6px; color: #F8FAFC; }
-QPushButton { background-color: #2563EB; color: white; border-radius: 4px; padding: 8px 16px; font-weight: 600; border: none; }
-QPushButton:hover { background-color: #3B82F6; }
-QPushButton#ExportBtn { background-color: #1E293B; color: #94A3B8; font-size: 10px; padding: 2px 8px; border: 1px solid #334155; }
-QPushButton#ExportBtn:hover { background-color: #334155; color: white; }
-QTableWidget { background-color: #1E293B; gridline-color: #334155; border: 1px solid #334155; border-radius: 4px; alternate-background-color: #253044; }
-QHeaderView::section { background-color: #334155; color: #F8FAFC; padding: 6px; border: none; font-weight: bold; }
-QHeaderView::section:hover { background-color: #475569; }
-QStatusBar { background-color: #1E293B; color: #94A3B8; border-top: 1px solid #334155; font-size: 12px; }
-QScrollBar:vertical { background: #1E293B; width: 8px; border: none; }
-QScrollBar::handle:vertical { background: #475569; border-radius: 4px; min-height: 20px; }
+QMainWindow, QWidget {
+    background-color: #060D18;
+    color: #E2EDF8;
+    font-family: 'Inter', 'Segoe UI', Arial;
+    font-size: 13px;
+}
+QGroupBox {
+    border: 1px solid #1A2D45;
+    border-radius: 10px;
+    margin-top: 18px;
+    font-weight: bold;
+    padding-top: 22px;
+    background-color: #0A1628;
+}
+QGroupBox::title {
+    subcontrol-origin: margin;
+    subcontrol-position: top left;
+    padding: 0 8px;
+    left: 14px;
+    color: #5A8AB8;
+    font-size: 10px;
+    text-transform: uppercase;
+}
+QCheckBox { color: #C4D8EE; spacing: 8px; }
+QCheckBox::indicator {
+    width: 16px; height: 16px;
+    border-radius: 4px;
+    border: 1px solid #2A4A6E;
+    background: #0D1E35;
+}
+QCheckBox::indicator:checked { background: #2563EB; border-color: #60A5FA; }
+QLineEdit, QComboBox, QDateEdit, QSpinBox {
+    background-color: #0D1E35;
+    border: 1px solid #1E3A5F;
+    border-radius: 6px;
+    padding: 8px 10px;
+    color: #E2EDF8;
+    selection-background-color: #2563EB;
+}
+QLineEdit:focus, QComboBox:focus, QSpinBox:focus { border-color: #3B82F6; }
+QComboBox::drop-down { border: none; width: 20px; }
+QComboBox QAbstractItemView {
+    background: #0D1E35;
+    border: 1px solid #1E3A5F;
+    color: #E2EDF8;
+    selection-background-color: #2563EB;
+}
+QPushButton {
+    background-color: #1D4ED8;
+    color: white;
+    border-radius: 6px;
+    padding: 9px 18px;
+    font-weight: 600;
+    border: none;
+    font-size: 13px;
+}
+QPushButton:hover { background-color: #2563EB; }
+QPushButton:pressed { background-color: #1E40AF; }
+QPushButton#ExportBtn {
+    background-color: #0D1E35;
+    color: #5A8AB8;
+    font-size: 10px;
+    padding: 2px 8px;
+    border: 1px solid #1E3A5F;
+    border-radius: 4px;
+}
+QPushButton#ExportBtn:hover { background-color: #122038; color: white; }
+QTableWidget {
+    background-color: #0A1628;
+    gridline-color: #111E30;
+    border: 1px solid #1A2D45;
+    border-radius: 8px;
+    alternate-background-color: #0D1E35;
+}
+QTableWidget::item { padding: 6px 10px; }
+QTableWidget::item:selected { background-color: #1D4ED8; color: white; }
+QHeaderView::section {
+    background-color: #0D1E35;
+    color: #5A8AB8;
+    padding: 8px 10px;
+    border: none;
+    border-bottom: 2px solid #1E3A5F;
+    font-weight: bold;
+    font-size: 10px;
+    text-transform: uppercase;
+}
+QHeaderView::section:hover { background-color: #122038; color: #93C5FD; }
+QTabBar::tab {
+    padding: 11px 28px;
+    background: transparent;
+    color: #3D5A78;
+    font-weight: 700;
+    font-size: 13px;
+    margin-right: 2px;
+    border-bottom: 3px solid transparent;
+}
+QTabBar::tab:selected { color: #60A5FA; border-bottom: 3px solid #3B82F6; background: transparent; }
+QTabBar::tab:hover { color: #93C5FD; }
+QTabWidget::pane { border: 1px solid #1A2D45; border-radius: 8px; top: -1px; background: #08111E; }
+QStatusBar { background-color: #04080F; color: #2D4A68; border-top: 1px solid #111E30; font-size: 11px; padding: 0 8px; }
+QScrollBar:vertical { background: #060D18; width: 6px; border: none; }
+QScrollBar::handle:vertical { background: #1E3A5F; border-radius: 3px; min-height: 20px; }
+QScrollBar::handle:vertical:hover { background: #2A4A6E; }
 QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0px; }
-QScrollBar:horizontal { background: #1E293B; height: 8px; border: none; }
-QScrollBar::handle:horizontal { background: #475569; border-radius: 4px; min-width: 20px; }
+QScrollBar:horizontal { background: #060D18; height: 6px; border: none; }
+QScrollBar::handle:horizontal { background: #1E3A5F; border-radius: 3px; min-width: 20px; }
 QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0px; }
-QToolTip { background-color: #1E293B; color: #F8FAFC; border: 1px solid #475569; padding: 4px; border-radius: 4px; }
+QToolTip {
+    background-color: #0D1E35;
+    color: #E2EDF8;
+    border: 1px solid #2A4A6E;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+}
+QDialog { background-color: #060D18; }
+QScrollArea { border: none; background: transparent; }
+QListWidget {
+    background: #0A1628;
+    border: 1px solid #1A2D45;
+    border-radius: 8px;
+    color: #C4D8EE;
+    outline: none;
+}
+QListWidget::item { padding: 7px 10px; border-radius: 4px; }
+QListWidget::item:selected { background: #1D4ED8; color: white; }
+QListWidget::item:hover { background: #122038; }
+QProgressDialog { background: #0A1628; color: #E2EDF8; }
 """
 
 class CrosshairChartView(QChartView):
@@ -206,36 +313,58 @@ class HospitalDashboard(QMainWindow):
         self.main_layout.setSpacing(24)
         scroll.setWidget(wrapper)
         
-        header_layout = QHBoxLayout()
+        header_card = QFrame()
+        header_card.setStyleSheet("""
+            QFrame {
+                background: qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 #0A1628,stop:0.6 #0A1628,stop:1 #060D18);
+                border-radius: 12px;
+                border: 1px solid #1A2D45;
+            }
+        """)
+        header_layout = QHBoxLayout(header_card)
+        header_layout.setContentsMargins(22, 16, 22, 16)
+        header_layout.setSpacing(14)
+
+        lbl_icon = QLabel("⚕")
+        lbl_icon.setStyleSheet("font-size: 32px; color: #3B82F6; border: none; background: transparent;")
+        header_layout.addWidget(lbl_icon)
+
+        title_block = QVBoxLayout()
+        title_block.setSpacing(2)
         header = QLabel("Dashboard de Engenharia Clínica")
-        header.setStyleSheet("font-size: 30px; font-weight: 700; color: #F8FAFC;")
-        header_layout.addWidget(header)
+        header.setStyleSheet("font-size: 20px; font-weight: 800; color: #F0F6FF; border: none; background: transparent;")
+        sub_header = QLabel("Gestão e monitoramento de equipamentos hospitalares")
+        sub_header.setStyleSheet("font-size: 11px; color: #2D4A68; border: none; background: transparent;")
+        title_block.addWidget(header)
+        title_block.addWidget(sub_header)
+        header_layout.addLayout(title_block)
         header_layout.addStretch()
-        
-        btn_settings = QPushButton(" Configurações")
-        btn_settings.setIcon(self.style().standardIcon(QStyle.SP_ComputerIcon)) # Using a generic config-like icon
-        btn_settings.setStyleSheet("QPushButton { background: #1E293B; color: #F8FAFC; padding: 10px 15px; border-radius: 6px; font-weight: bold; border: 1px solid #334155; } QPushButton:hover { background: #334155; }")
+
+        btn_settings = QPushButton("⚙  Configurações")
+        btn_settings.setStyleSheet("""
+            QPushButton { background: #0D1E35; color: #7BA8D8; padding: 9px 16px; border-radius: 7px;
+                          font-weight: 600; border: 1px solid #1E3A5F; font-size: 12px; }
+            QPushButton:hover { background: #122038; color: #E2EDF8; }
+        """)
         btn_settings.clicked.connect(self.open_settings)
         header_layout.addWidget(btn_settings)
 
-        btn_back = QPushButton(" Voltar")
-        btn_back.setIcon(self.style().standardIcon(QStyle.SP_ArrowBack))
-        btn_back.setStyleSheet("QPushButton { background: #334155; color: #F8FAFC; padding: 10px 15px; border-radius: 6px; font-weight: bold; } QPushButton:hover { background: #475569; }")
+        btn_back = QPushButton("← Voltar")
+        btn_back.setStyleSheet("""
+            QPushButton { background: #0D1E35; color: #5A8AB8; padding: 9px 16px; border-radius: 7px;
+                          font-weight: 600; border: 1px solid #1A2D45; font-size: 12px; }
+            QPushButton:hover { background: #122038; color: #C4D8EE; }
+        """)
         btn_back.clicked.connect(self.go_back_with_confirmation)
         header_layout.addWidget(btn_back)
-        
-        self.main_layout.addLayout(header_layout)
+
+        self.main_layout.addWidget(header_card)
         
         self.active_years = set(range(2018, 2026))
         self.selected_setores = []
         if not hasattr(self, '_overlays'): self._overlays = []
         
         self.tabs = QTabWidget()
-        self.tabs.setStyleSheet("""
-            QTabBar::tab { padding: 10px 20px; background: #1E293B; color: #94A3B8; border-top-left-radius: 6px; border-top-right-radius: 6px; font-weight: bold; font-size: 14px; margin-right: 2px; }
-            QTabBar::tab:selected { background: #38BDF8; color: #0F172A; }
-            QTabWidget::pane { border: 1px solid #334155; border-radius: 6px; top: -1px; }
-        """)
         self.main_layout.addWidget(self.tabs)
         
         self.analysis_tab = QWidget()
@@ -259,118 +388,181 @@ class HospitalDashboard(QMainWindow):
         self.setup_cost_analysis_row()
         self.setup_data_tab()
 
+    def _make_file_row(self, placeholder, dialog_title, icon="📄", optional=False):
+        row_frame = QFrame()
+        row_frame.setStyleSheet("""
+            QFrame {
+                background-color: #0A1628;
+                border: 1px solid #1A2D45;
+                border-radius: 8px;
+            }
+            QFrame:hover { border-color: #2A4A6E; }
+        """)
+        row_lay = QHBoxLayout(row_frame)
+        row_lay.setContentsMargins(12, 10, 12, 10)
+        row_lay.setSpacing(10)
+
+        lbl_icon = QLabel(icon)
+        lbl_icon.setStyleSheet("font-size: 18px; border: none; background: transparent;")
+        lbl_icon.setFixedWidth(26)
+
+        path_edit = QLineEdit()
+        label_text = placeholder + (" (opcional)" if optional else "")
+        path_edit.setPlaceholderText(label_text)
+        path_edit.setReadOnly(True)
+        path_edit.setStyleSheet("QLineEdit { background: transparent; border: none; color: #C4D8EE; font-size: 12px; }")
+
+        btn = QPushButton("Procurar")
+        btn.setFixedWidth(80)
+        btn.setStyleSheet("""
+            QPushButton { background: #122038; color: #7BA8D8; border: 1px solid #1E3A5F;
+                          border-radius: 5px; padding: 5px 10px; font-size: 11px; font-weight: bold; }
+            QPushButton:hover { background: #1E3A5F; color: #E2EDF8; }
+        """)
+        btn.clicked.connect(lambda: path_edit.setText(
+            QFileDialog.getOpenFileName(self, dialog_title, "", "CSV Files (*.csv)")[0]
+        ))
+
+        row_lay.addWidget(lbl_icon)
+        row_lay.addWidget(path_edit, 1)
+        row_lay.addWidget(btn)
+        return row_frame, path_edit
+
     def setup_import_page(self):
         page = QWidget()
-        layout = QVBoxLayout(page)
-        
-        layout.addStretch()
-        
-        container = QFrame()
-        container.setStyleSheet("QFrame { background-color: #1E293B; border-radius: 12px; border: 1px solid #334155; }")
-        container.setFixedWidth(550)
-        c_layout = QVBoxLayout(container)
-        c_layout.setContentsMargins(30, 30, 30, 30)
-        c_layout.setSpacing(15)
-        
-        title = QLabel("Importação de Dados")
-        title.setStyleSheet("font-size: 24px; font-weight: bold; color: #F8FAFC; border: none;")
-        title.setAlignment(Qt.AlignCenter)
-        c_layout.addWidget(title)
-        
-        subtitle = QLabel("Selecione as planilhas para carregar o sistema.")
-        subtitle.setStyleSheet("font-size: 14px; color: #94A3B8; border: none;")
-        subtitle.setAlignment(Qt.AlignCenter)
-        c_layout.addWidget(subtitle)
-        
-        # Equipamentos row
-        equip_lay = QHBoxLayout()
-        self.equip_path = QLineEdit()
-        self.equip_path.setPlaceholderText("Planilha de Equipamentos...")
-        self.equip_path.setReadOnly(True)
-        self.equip_path.setStyleSheet("QLineEdit { background: #0F172A; border: 1px solid #334155; padding: 10px; border-radius: 6px; color: #E2E8F0; }")
-        btn_equip = QPushButton("Procurar")
-        btn_equip.setStyleSheet("QPushButton { background: #334155; color: #F8FAFC; padding: 10px 15px; border-radius: 6px; font-weight: bold; } QPushButton:hover { background: #475569; }")
-        btn_equip.clicked.connect(lambda: self.equip_path.setText(QFileDialog.getOpenFileName(self, "Selecionar Planilha Equipamentos", "", "CSV Files (*.csv)")[0]))
-        equip_lay.addWidget(self.equip_path)
-        equip_lay.addWidget(btn_equip)
-        c_layout.addLayout(equip_lay)
-        
-        # Criticidade row
-        crit_lay = QHBoxLayout()
-        self.crit_path = QLineEdit()
-        self.crit_path.setPlaceholderText("Planilha de Criticidade (Opcional)...")
-        self.crit_path.setReadOnly(True)
-        self.crit_path.setStyleSheet("QLineEdit { background: #0F172A; border: 1px solid #334155; padding: 10px; border-radius: 6px; color: #E2E8F0; }")
-        btn_crit = QPushButton("Procurar")
-        btn_crit.setStyleSheet("QPushButton { background: #334155; color: #F8FAFC; padding: 10px 15px; border-radius: 6px; font-weight: bold; } QPushButton:hover { background: #475569; }")
-        btn_crit.clicked.connect(lambda: self.crit_path.setText(QFileDialog.getOpenFileName(self, "Selecionar Planilha de Criticidade", "", "CSV Files (*.csv)")[0]))
-        crit_lay.addWidget(self.crit_path)
-        crit_lay.addWidget(btn_crit)
-        c_layout.addLayout(crit_lay)
-        
-        # OS row (Antigo)
-        os_antiga_lay = QHBoxLayout()
-        self.os_antiga_path = QLineEdit()
-        self.os_antiga_path.setPlaceholderText("Planilha de OS (Formato Antigo)...")
-        self.os_antiga_path.setReadOnly(True)
-        self.os_antiga_path.setStyleSheet("QLineEdit { background: #0F172A; border: 1px solid #334155; padding: 10px; border-radius: 6px; color: #E2E8F0; }")
-        btn_os_antiga = QPushButton("Procurar")
-        btn_os_antiga.setStyleSheet("QPushButton { background: #334155; color: #F8FAFC; padding: 10px 15px; border-radius: 6px; font-weight: bold; } QPushButton:hover { background: #475569; }")
-        btn_os_antiga.clicked.connect(lambda: self.os_antiga_path.setText(QFileDialog.getOpenFileName(self, "Selecionar Planilha OS Antiga", "", "CSV Files (*.csv)")[0]))
-        os_antiga_lay.addWidget(self.os_antiga_path)
-        os_antiga_lay.addWidget(btn_os_antiga)
-        c_layout.addLayout(os_antiga_lay)
-        
-        # OS row (Atual)
-        os_atual_lay = QHBoxLayout()
-        self.os_atual_path = QLineEdit()
-        self.os_atual_path.setPlaceholderText("Planilha de OS (Formato Atual)...")
-        self.os_atual_path.setReadOnly(True)
-        self.os_atual_path.setStyleSheet("QLineEdit { background: #0F172A; border: 1px solid #334155; padding: 10px; border-radius: 6px; color: #E2E8F0; }")
-        btn_os_atual = QPushButton("Procurar")
-        btn_os_atual.setStyleSheet("QPushButton { background: #334155; color: #F8FAFC; padding: 10px 15px; border-radius: 6px; font-weight: bold; } QPushButton:hover { background: #475569; }")
-        btn_os_atual.clicked.connect(lambda: self.os_atual_path.setText(QFileDialog.getOpenFileName(self, "Selecionar Planilha OS Atual", "", "CSV Files (*.csv)")[0]))
-        os_atual_lay.addWidget(self.os_atual_path)
-        os_atual_lay.addWidget(btn_os_atual)
-        c_layout.addLayout(os_atual_lay)
-        
-        # Run button
-        btn_run = QPushButton("Carregar Dados e Acessar Dashboard")
-        btn_run.setStyleSheet("QPushButton { background: #0284C7; color: white; padding: 15px; border-radius: 6px; font-size: 16px; font-weight: bold; } QPushButton:hover { background: #0369A1; }")
+        page.setStyleSheet("QWidget { background-color: #060D18; }")
+        outer = QVBoxLayout(page)
+        outer.setContentsMargins(0, 0, 0, 0)
+
+        # ── Top branding strip ──────────────────────────────────────────
+        brand_bar = QFrame()
+        brand_bar.setFixedHeight(64)
+        brand_bar.setStyleSheet("QFrame { background-color: #0A1628; border-bottom: 1px solid #1A2D45; }")
+        brand_lay = QHBoxLayout(brand_bar)
+        brand_lay.setContentsMargins(32, 0, 32, 0)
+
+        lbl_cross = QLabel("⚕")
+        lbl_cross.setStyleSheet("font-size: 26px; color: #3B82F6; border: none;")
+        lbl_brand = QLabel("Sistema de Gestão de Equipamentos Hospitalares")
+        lbl_brand.setStyleSheet("font-size: 16px; font-weight: 800; color: #E2EDF8; border: none; letter-spacing: 0.3px;")
+        brand_lay.addWidget(lbl_cross)
+        brand_lay.addSpacing(10)
+        brand_lay.addWidget(lbl_brand)
+        brand_lay.addStretch()
+
+        outer.addWidget(brand_bar)
+
+        # ── Centered content ────────────────────────────────────────────
+        center_lay = QVBoxLayout()
+        center_lay.setAlignment(Qt.AlignCenter)
+        outer.addLayout(center_lay, 1)
+
+        card = QFrame()
+        card.setFixedWidth(580)
+        card.setStyleSheet("""
+            QFrame {
+                background-color: #0A1628;
+                border-radius: 14px;
+                border: 1px solid #1A2D45;
+            }
+        """)
+        card_lay = QVBoxLayout(card)
+        card_lay.setContentsMargins(0, 0, 0, 0)
+        card_lay.setSpacing(0)
+
+        # Accent top bar
+        top_accent = QFrame()
+        top_accent.setFixedHeight(4)
+        top_accent.setStyleSheet("background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #1D4ED8, stop:1 #06B6D4); border-radius: 14px 14px 0 0; border: none;")
+        card_lay.addWidget(top_accent)
+
+        inner = QWidget()
+        inner.setStyleSheet("background: transparent; border: none;")
+        inner_lay = QVBoxLayout(inner)
+        inner_lay.setContentsMargins(32, 28, 32, 32)
+        inner_lay.setSpacing(20)
+
+        # Title section
+        title_lbl = QLabel("Importação de Dados")
+        title_lbl.setStyleSheet("font-size: 22px; font-weight: 800; color: #F0F6FF; border: none;")
+        title_lbl.setAlignment(Qt.AlignCenter)
+        sub_lbl = QLabel("Selecione as planilhas para carregar o dashboard")
+        sub_lbl.setStyleSheet("font-size: 13px; color: #3D5A78; border: none;")
+        sub_lbl.setAlignment(Qt.AlignCenter)
+        inner_lay.addWidget(title_lbl)
+        inner_lay.addWidget(sub_lbl)
+
+        # Divider
+        div = QFrame(); div.setFrameShape(QFrame.HLine)
+        div.setStyleSheet("border: none; background: #1A2D45; max-height: 1px;")
+        inner_lay.addWidget(div)
+
+        # File rows
+        equip_row, self.equip_path = self._make_file_row("Planilha de Equipamentos", "Selecionar Planilha de Equipamentos", "🗂")
+        crit_row,  self.crit_path  = self._make_file_row("Planilha de Criticidade", "Selecionar Planilha de Criticidade", "⚖", optional=True)
+        os_ant_row, self.os_antiga_path = self._make_file_row("OS — Formato Antigo", "Selecionar Planilha OS Antiga", "🗃")
+        os_atu_row, self.os_atual_path  = self._make_file_row("OS — Formato Atual",  "Selecionar Planilha OS Atual",  "📋")
+
+        for row in (equip_row, crit_row, os_ant_row, os_atu_row):
+            inner_lay.addWidget(row)
+
+        # Action buttons
+        btn_run = QPushButton("▶  Carregar Dados e Acessar Dashboard")
+        btn_run.setStyleSheet("""
+            QPushButton { background: qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 #1D4ED8,stop:1 #0E7490);
+                          color: white; padding: 14px; border-radius: 8px; font-size: 14px; font-weight: 700; }
+            QPushButton:hover { background: qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 #2563EB,stop:1 #0891B2); }
+        """)
         btn_run.clicked.connect(self.load_data)
-        c_layout.addWidget(btn_run)
-        
-        # Export button
-        btn_export = QPushButton("Exportar Dados Consolidados (CSV)")
-        btn_export.setStyleSheet("QPushButton { background: #10B981; color: white; padding: 15px; border-radius: 6px; font-size: 16px; font-weight: bold; } QPushButton:hover { background: #059669; }")
+        inner_lay.addWidget(btn_run)
+
+        btn_row = QHBoxLayout()
+        btn_export = QPushButton("⬇  Exportar CSV")
+        btn_export.setStyleSheet("""
+            QPushButton { background: #0D1E35; color: #34D399; border: 1px solid #065F46;
+                          padding: 10px; border-radius: 7px; font-size: 12px; font-weight: 600; }
+            QPushButton:hover { background: #0A2E1E; }
+        """)
         btn_export.clicked.connect(self.export_data)
-        c_layout.addWidget(btn_export)
 
-        btn_demo = QPushButton("Visualizar com Dados de Demonstração")
-        btn_demo.setToolTip("Acessa o dashboard com dados fictícios de exemplo, sem precisar importar planilhas.")
-        btn_demo.setStyleSheet("QPushButton { background: #334155; color: #CBD5E1; padding: 10px; border-radius: 6px; font-size: 13px; font-weight: bold; border: 1px solid #475569; } QPushButton:hover { background: #475569; color: white; }")
+        btn_demo = QPushButton("◈  Dados de Demonstração")
+        btn_demo.setToolTip("Abre o dashboard com dados fictícios de exemplo.")
+        btn_demo.setStyleSheet("""
+            QPushButton { background: #0D1E35; color: #7BA8D8; border: 1px solid #1E3A5F;
+                          padding: 10px; border-radius: 7px; font-size: 12px; font-weight: 600; }
+            QPushButton:hover { background: #122038; color: #C4D8EE; }
+        """)
         btn_demo.clicked.connect(self.load_demo_data)
-        c_layout.addWidget(btn_demo)
 
-        # Histórico
+        btn_row.addWidget(btn_export)
+        btn_row.addWidget(btn_demo)
+        inner_lay.addLayout(btn_row)
+
+        card_lay.addWidget(inner)
+        center_lay.addWidget(card, 0, Qt.AlignHCenter)
+
+        # ── History section ─────────────────────────────────────────────
+        hist_card = QFrame()
+        hist_card.setFixedWidth(580)
+        hist_card.setStyleSheet("QFrame { background: #0A1628; border: 1px solid #1A2D45; border-radius: 10px; }")
+        hist_lay = QVBoxLayout(hist_card)
+        hist_lay.setContentsMargins(20, 16, 20, 16)
+        hist_lay.setSpacing(8)
+
         self.history_path_file = os.path.join(os.path.dirname(__file__), 'data', 'history.json')
-        history_title = QLabel("Histórico de Importações Recentes:")
-        history_title.setStyleSheet("color: #94A3B8; font-weight: bold; margin-top: 20px;")
-        c_layout.addWidget(history_title)
-        
+        hist_title = QLabel("IMPORTAÇÕES RECENTES")
+        hist_title.setStyleSheet("color: #2A4A6E; font-size: 10px; font-weight: bold; border: none;")
+        hist_lay.addWidget(hist_title)
+
         self.history_list = QListWidget()
-        self.history_list.setStyleSheet(
-            "QListWidget { background: #0F172A; border: 1px solid #334155; border-radius: 6px; color: #E2E8F0; padding: 5px; }"
-            "QListWidget::item:selected { background: #38BDF8; color: #0F172A; }"
-        )
-        self.history_list.setFixedHeight(120)
+        self.history_list.setFixedHeight(110)
         self.history_list.itemClicked.connect(self.load_history_item)
-        c_layout.addWidget(self.history_list)
-        
+        hist_lay.addWidget(self.history_list)
+
         self.populate_history()
-        
-        layout.addWidget(container, alignment=Qt.AlignHCenter)
-        layout.addStretch()
+        center_lay.addSpacing(16)
+        center_lay.addWidget(hist_card, 0, Qt.AlignHCenter)
+
         self.root_stack.addWidget(page)
         
     def populate_history(self):
@@ -645,25 +837,46 @@ class HospitalDashboard(QMainWindow):
         total_cost = sum(os_data.get("custo", 0) for equip in self.filtered_equipment_data for os_data in equip.get("os", []))
         
         total_cost_str = f"R$ {total_cost:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-        
-        def create_kpi_card(title, value):
+
+        def create_kpi_card(title, value, icon, accent):
             card = QFrame()
-            card.setStyleSheet("QFrame { background-color: #1E293B; border-radius: 12px; border: 1px solid #334155; }")
-            layout = QVBoxLayout(card)
-            layout.setContentsMargins(24, 24, 24, 24)
-            lbl_title = QLabel(title)
-            lbl_title.setStyleSheet("color: #94A3B8; font-size: 14px; font-weight: bold; border: none;")
-            lbl_title.setAlignment(Qt.AlignCenter)
+            card.setStyleSheet(f"QFrame {{ background-color: #0A1628; border-radius: 12px; border: 1px solid #1A2D45; }}")
+            card_vbox = QVBoxLayout(card)
+            card_vbox.setContentsMargins(0, 0, 0, 0)
+            card_vbox.setSpacing(0)
+
+            accent_bar = QFrame()
+            accent_bar.setFixedHeight(4)
+            accent_bar.setStyleSheet(f"background: {accent}; border-radius: 12px 12px 0 0; border: none;")
+            card_vbox.addWidget(accent_bar)
+
+            inner = QWidget()
+            inner.setStyleSheet("background: transparent; border: none;")
+            inner_vbox = QVBoxLayout(inner)
+            inner_vbox.setContentsMargins(22, 16, 22, 20)
+            inner_vbox.setSpacing(6)
+
+            top_row = QHBoxLayout()
+            lbl_title = QLabel(title.upper())
+            lbl_title.setStyleSheet("color: #2D4A68; font-size: 10px; font-weight: bold; letter-spacing: 1px; border: none;")
+            lbl_icon = QLabel(icon)
+            lbl_icon.setStyleSheet(f"color: {accent}; font-size: 22px; border: none;")
+            lbl_icon.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+            top_row.addWidget(lbl_title)
+            top_row.addStretch()
+            top_row.addWidget(lbl_icon)
+            inner_vbox.addLayout(top_row)
+
             lbl_val = QLabel(str(value))
-            lbl_val.setStyleSheet("color: #38BDF8; font-size: 36px; font-weight: bold; border: none;")
-            lbl_val.setAlignment(Qt.AlignCenter)
-            layout.addWidget(lbl_title)
-            layout.addWidget(lbl_val)
+            lbl_val.setStyleSheet(f"color: #F0F6FF; font-size: 30px; font-weight: 800; border: none;")
+            inner_vbox.addWidget(lbl_val)
+
+            card_vbox.addWidget(inner)
             return card
 
-        kpi_layout.addWidget(create_kpi_card("Total de Equipamentos", total_equip), 1)
-        kpi_layout.addWidget(create_kpi_card("Total de OS Emitidas", total_os), 1)
-        kpi_layout.addWidget(create_kpi_card("Total Gasto em OS", total_cost_str), 1)
+        kpi_layout.addWidget(create_kpi_card("Total de Equipamentos", total_equip,  "⚕",  "#3B82F6"), 1)
+        kpi_layout.addWidget(create_kpi_card("Total de OS Emitidas",  total_os,     "◈",  "#F59E0B"), 1)
+        kpi_layout.addWidget(create_kpi_card("Total Gasto em OS",     total_cost_str, "◉", "#10B981"), 1)
         
         self.analysis_layout.insertWidget(0, self.kpi_layout_widget)
 
@@ -711,9 +924,9 @@ class HospitalDashboard(QMainWindow):
         # Segmented-style toggle
         toggle_frame = QFrame(self.top5_group)
         toggle_frame.setStyleSheet("""
-            QFrame { background: #1E293B; border-radius: 8px; border: 1px solid #334155; }
-            QPushButton { background: transparent; border: none; padding: 4px 12px; border-radius: 6px; color: #94A3B8; font-weight: bold; font-size: 11px; }
-            QPushButton:checked { background: #2563EB; color: white; }
+            QFrame { background: #0D1E35; border-radius: 8px; border: 1px solid #1E3A5F; }
+            QPushButton { background: transparent; border: none; padding: 5px 14px; border-radius: 6px; color: #3D5A78; font-weight: bold; font-size: 11px; }
+            QPushButton:checked { background: #1D4ED8; color: white; }
         """)
         toggle_lay = QHBoxLayout(toggle_frame)
         toggle_lay.setContentsMargins(2, 2, 2, 2)
@@ -798,7 +1011,7 @@ class HospitalDashboard(QMainWindow):
         layout = QHBoxLayout()
         layout.setSpacing(24)
         
-        group_style = "QGroupBox { border: 1px solid #334155; border-radius: 12px; padding-top: 24px; font-weight: bold; }"
+        group_style = "QGroupBox { border: 1px solid #1A2D45; border-radius: 12px; padding-top: 24px; font-weight: bold; background: #0A1628; }"
 
         evol_group = QGroupBox("Evolução do Custo Total por Ano")
         evol_group.setStyleSheet(group_style)
@@ -857,20 +1070,21 @@ class HospitalDashboard(QMainWindow):
         # 1. Evolution Chart
         chart_evol = QChart()
         chart_evol.setAnimationOptions(QChart.SeriesAnimations)
-        chart_evol.setBackgroundBrush(QColor("#1E293B"))
-        chart_evol.setTitleBrush(QColor("#F8FAFC"))
+        chart_evol.setBackgroundBrush(QColor("#0A1628"))
+        chart_evol.setTitleBrush(QColor("#C4D8EE"))
         series_evol = QLineSeries()
-        series_evol.setColor(QColor("#F59E0B"))
+        series_evol.setColor(QColor("#FBBF24"))
         series_evol.setPointsVisible(True)
+        pen_evol = series_evol.pen(); pen_evol.setWidth(2); series_evol.setPen(pen_evol)
         
         years = sorted(cost_by_year.keys())
         axis_x_evol = QBarCategoryAxis()
         axis_x_evol.append([str(y) for y in years])
-        axis_x_evol.setLabelsColor(QColor("#CBD5E1"))
+        axis_x_evol.setLabelsColor(QColor("#4A6A8A"))
         chart_evol.addAxis(axis_x_evol, Qt.AlignBottom)
 
         axis_y_evol = QValueAxis()
-        axis_y_evol.setLabelsColor(QColor("#CBD5E1"))
+        axis_y_evol.setLabelsColor(QColor("#4A6A8A"))
         axis_y_evol.setLabelFormat("%.0f")
         max_cost_y = max(cost_by_year.values()) if cost_by_year else 1000
         axis_y_evol.setRange(0, max_cost_y * 1.1)
@@ -888,7 +1102,7 @@ class HospitalDashboard(QMainWindow):
         # 2. Top 10 Equip
         top10_equip = sorted(equip_cost.items(), key=lambda x: x[1], reverse=True)[:10]
         bar_set = QBarSet("Custo")
-        bar_set.setBrush(QColor("#EF4444"))
+        bar_set.setBrush(QColor("#F87171"))
         categories_top10 = []
         for mod, c in top10_equip:
             bar_set.append(c)
@@ -899,17 +1113,17 @@ class HospitalDashboard(QMainWindow):
         
         chart_top10 = QChart()
         chart_top10.setAnimationOptions(QChart.SeriesAnimations)
-        chart_top10.setBackgroundBrush(QColor("#1E293B"))
+        chart_top10.setBackgroundBrush(QColor("#0A1628"))
         chart_top10.addSeries(series_bar)
         
         axis_x_bar = QBarCategoryAxis()
         axis_x_bar.append(categories_top10)
-        axis_x_bar.setLabelsColor(QColor("#CBD5E1"))
+        axis_x_bar.setLabelsColor(QColor("#4A6A8A"))
         chart_top10.addAxis(axis_x_bar, Qt.AlignBottom)
         series_bar.attachAxis(axis_x_bar)
         
         axis_y_bar = QValueAxis()
-        axis_y_bar.setLabelsColor(QColor("#CBD5E1"))
+        axis_y_bar.setLabelsColor(QColor("#4A6A8A"))
         axis_y_bar.setLabelFormat("%.0f")
         max_c = max([c for m, c in top10_equip]) if top10_equip else 1000
         axis_y_bar.setRange(0, max_c * 1.1)
@@ -922,20 +1136,20 @@ class HospitalDashboard(QMainWindow):
         top10_sectors = sorted(sector_cost.items(), key=lambda x: x[1], reverse=True)[:10]
         series_sec = QPieSeries()
         series_sec.setHoleSize(0.4)
-        colors = ["#3B82F6", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6", "#EC4899", "#14B8A6", "#F97316", "#06B6D4", "#6366F1"]
+        colors = ["#60A5FA", "#34D399", "#FBBF24", "#F87171", "#A78BFA", "#F472B6", "#2DD4BF", "#FB923C", "#38BDF8", "#818CF8"]
         
         for i, (sec, c) in enumerate(top10_sectors):
             slice_ = series_sec.append(sec, c)
             slice_.setBrush(QColor(colors[i % len(colors)]))
             slice_.setLabelVisible(True)
-            slice_.setLabelColor(QColor("#CBD5E1"))
+            slice_.setLabelColor(QColor("#4A6A8A"))
             
         chart_sec = QChart()
         chart_sec.setAnimationOptions(QChart.SeriesAnimations)
-        chart_sec.setBackgroundBrush(QColor("#1E293B"))
+        chart_sec.setBackgroundBrush(QColor("#0A1628"))
         chart_sec.addSeries(series_sec)
         chart_sec.legend().setAlignment(Qt.AlignBottom)
-        chart_sec.legend().setLabelColor(QColor("#F8FAFC"))
+        chart_sec.legend().setLabelColor(QColor("#C4D8EE"))
         self.sector_chart_view.setChart(chart_sec)
 
     def update_age_donut(self):
@@ -956,12 +1170,12 @@ class HospitalDashboard(QMainWindow):
         pct_over = (over / total) * 100 if total else 0
         pct_under = (under / total) * 100 if total else 0
         series = QPieSeries(); series.setHoleSize(0.6)
-        s1 = series.append(f"≥ {threshold} Anos ({over} - {pct_over:.1f}%)", over); s1.setBrush(QColor("#475569"))
-        s2 = series.append(f"< {threshold} Anos ({under} - {pct_under:.1f}%)", under); s2.setBrush(QColor("#2563EB"))
-        for slice in series.slices(): slice.setLabelVisible(True); slice.setLabelColor(QColor("#CBD5E1"))
+        s1 = series.append(f"≥ {threshold} Anos ({over} - {pct_over:.1f}%)", over); s1.setBrush(QColor("#F87171"))
+        s2 = series.append(f"< {threshold} Anos ({under} - {pct_under:.1f}%)", under); s2.setBrush(QColor("#60A5FA"))
+        for slice in series.slices(): slice.setLabelVisible(True); slice.setLabelColor(QColor("#4A6A8A"))
         chart = QChart(); chart.setAnimationOptions(QChart.SeriesAnimations); chart.addSeries(series); chart.setTitle(f"Corte: {threshold} anos")
-        chart.setBackgroundBrush(QColor("#1E293B")); chart.setTitleBrush(QColor("#F8FAFC"))
-        chart.legend().setAlignment(Qt.AlignBottom); chart.legend().setLabelColor(QColor("#F8FAFC"))
+        chart.setBackgroundBrush(QColor("#0A1628")); chart.setTitleBrush(QColor("#C4D8EE"))
+        chart.legend().setAlignment(Qt.AlignBottom); chart.legend().setLabelColor(QColor("#C4D8EE"))
         self.age_donut_view.setChart(chart)
         
         # Recalcula dinamicamente a priorização com o novo corte da UI e propaga para o gráfico Top 5
@@ -997,8 +1211,8 @@ class HospitalDashboard(QMainWindow):
                 pass
 
     def update_global_chart(self):
-        chart = QChart(); chart.setAnimationOptions(QChart.SeriesAnimations); chart.setBackgroundBrush(QColor("#1E293B")); chart.setTitleBrush(QColor("#F8FAFC"))
-        colors = ["#10B981", "#3B82F6", "#F59E0B", "#EF4444", "#8B5CF6", "#EC4899", "#14B8A6"]
+        chart = QChart(); chart.setAnimationOptions(QChart.SeriesAnimations); chart.setBackgroundBrush(QColor("#0A1628")); chart.setTitleBrush(QColor("#C4D8EE"))
+        colors = ["#34D399", "#60A5FA", "#FBBF24", "#F87171", "#A78BFA", "#F472B6", "#2DD4BF", "#FB923C"]
         
         all_years = list(range(2018, 2026))
         
@@ -1013,14 +1227,14 @@ class HospitalDashboard(QMainWindow):
 
         axis_x = QBarCategoryAxis()
         axis_x.append(["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"])
-        axis_x.setLabelsColor(QColor("#CBD5E1"))
+        axis_x.setLabelsColor(QColor("#4A6A8A"))
         axis_x.setGridLineVisible(True)
-        axis_x.setGridLineColor(QColor("#334155"))
+        axis_x.setGridLineColor(QColor("#1A2D45"))
         chart.addAxis(axis_x, Qt.AlignBottom)
         
-        axis_y = QValueAxis(); axis_y.setLabelsColor(QColor("#CBD5E1")); axis_y.setLabelFormat("%d")
+        axis_y = QValueAxis(); axis_y.setLabelsColor(QColor("#4A6A8A")); axis_y.setLabelFormat("%d")
         axis_y.setGridLineVisible(True)
-        axis_y.setGridLineColor(QColor("#334155"))
+        axis_y.setGridLineColor(QColor("#1A2D45"))
         max_val = 5
         
         averages = {m: 0 for m in range(1, 13)}
@@ -1040,7 +1254,7 @@ class HospitalDashboard(QMainWindow):
         
         if self.active_years:
             avg_series = QLineSeries(); avg_series.setName("Média")
-            avg_series.setColor(QColor("#F8FAFC")); avg_series.setPointsVisible(True)
+            avg_series.setColor(QColor("#C4D8EE")); avg_series.setPointsVisible(True)
             pen = avg_series.pen(); pen.setStyle(Qt.DashLine); pen.setWidth(2); avg_series.setPen(pen)
             for month in range(1, 13):
                 avg_val = averages[month] / len(self.active_years)
@@ -1057,7 +1271,7 @@ class HospitalDashboard(QMainWindow):
         
         chart.legend().setVisible(True)
         chart.legend().setAlignment(Qt.AlignBottom)
-        chart.legend().setLabelColor(QColor("#F8FAFC"))
+        chart.legend().setLabelColor(QColor("#C4D8EE"))
         
         for marker in chart.legend().markers():
             if marker.series().name() == "Média":
@@ -1117,7 +1331,7 @@ class HospitalDashboard(QMainWindow):
         # Update Chart
         series = QHorizontalBarSeries()
         bar_set = QBarSet("Score")
-        bar_set.setBrush(QColor("#CF6679"))
+        bar_set.setBrush(QColor("#F472B6"))
         
         categories = []
         for item in reversed(sorted_items):
@@ -1128,18 +1342,18 @@ class HospitalDashboard(QMainWindow):
         
         chart = QChart()
         chart.setAnimationOptions(QChart.SeriesAnimations)
-        chart.setBackgroundBrush(QColor("#1E293B"))
+        chart.setBackgroundBrush(QColor("#0A1628"))
         chart.addSeries(series)
         chart.legend().setVisible(False)
         
         axis_y = QBarCategoryAxis()
         axis_y.append(categories)
-        axis_y.setLabelsColor(QColor("#CBD5E1"))
+        axis_y.setLabelsColor(QColor("#4A6A8A"))
         chart.addAxis(axis_y, Qt.AlignLeft)
         series.attachAxis(axis_y)
         
         axis_x = QValueAxis()
-        axis_x.setLabelsColor(QColor("#CBD5E1"))
+        axis_x.setLabelsColor(QColor("#4A6A8A"))
         axis_x.setRange(0, 100)
         axis_x.setLabelFormat("%.0f")
         chart.addAxis(axis_x, Qt.AlignBottom)
@@ -1310,15 +1524,28 @@ class HospitalDashboard(QMainWindow):
         if self.f_setor.currentText() != "Todos Setores":
             filtered_eq = [i for i in filtered_eq if i["setor"] == self.f_setor.currentText()]
 
+        STATUS_COLORS = {"Em uso": "#34D399", "Inoperante": "#F87171", "Disponível": "#FBBF24"}
+        CRIT_LABELS = {1: "● Baixa", 2: "●● Média", 3: "●●● Alta"}
+        CRIT_COLORS = {1: "#4A6A8A", 2: "#FBBF24", 3: "#F87171"}
+
         self.equip_table.setSortingEnabled(False)
         self.equip_table.setRowCount(len(filtered_eq))
         for r, item in enumerate(filtered_eq):
             self.equip_table.setItem(r, 0, QTableWidgetItem(item.get("identificador", "N/A")))
             self.equip_table.setItem(r, 1, QTableWidgetItem(item["modelo"]))
             self.equip_table.setItem(r, 2, QTableWidgetItem(item["setor"]))
-            self.equip_table.setItem(r, 3, QTableWidgetItem(str(item["criticidade"])))
+
+            crit_val = item["criticidade"]
+            crit_item = QTableWidgetItem(CRIT_LABELS.get(crit_val, str(crit_val)))
+            crit_item.setForeground(QColor(CRIT_COLORS.get(crit_val, "#E2EDF8")))
+            self.equip_table.setItem(r, 3, crit_item)
+
             self.equip_table.setItem(r, 4, QTableWidgetItem(item["data_aquisicao"]))
-            self.equip_table.setItem(r, 5, QTableWidgetItem(item["status"]))
+
+            status = item["status"]
+            status_item = QTableWidgetItem(status)
+            status_item.setForeground(QColor(STATUS_COLORS.get(status, "#C4D8EE")))
+            self.equip_table.setItem(r, 5, status_item)
         self.equip_table.setSortingEnabled(True)
         self.lbl_equip_count.setText(f"{len(filtered_eq)} equipamento(s) encontrado(s)")
 

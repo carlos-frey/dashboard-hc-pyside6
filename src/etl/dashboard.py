@@ -8,10 +8,10 @@ from datetime import date, datetime, timedelta
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QTableWidget, QTableWidgetItem, QHeaderView, QFrame,
-    QLineEdit, QComboBox, QPushButton, QCheckBox, QFormLayout, 
+    QLineEdit, QComboBox, QPushButton, QCheckBox, QFormLayout,
     QGroupBox, QScrollArea, QFileDialog, QMessageBox, QDialog, QDateEdit, QSpinBox,
     QGraphicsLineItem, QTabWidget, QStackedWidget, QListWidget, QListWidgetItem,
-    QStyle
+    QStyle, QProgressDialog
 )
 from PySide6.QtCore import Qt, QDateTime, QEvent, QDate
 from PySide6.QtGui import QColor, QPainter, QFont, QPen, QIcon
@@ -63,8 +63,17 @@ QPushButton { background-color: #2563EB; color: white; border-radius: 4px; paddi
 QPushButton:hover { background-color: #3B82F6; }
 QPushButton#ExportBtn { background-color: #1E293B; color: #94A3B8; font-size: 10px; padding: 2px 8px; border: 1px solid #334155; }
 QPushButton#ExportBtn:hover { background-color: #334155; color: white; }
-QTableWidget { background-color: #1E293B; gridline-color: #334155; border: 1px solid #334155; border-radius: 4px; }
+QTableWidget { background-color: #1E293B; gridline-color: #334155; border: 1px solid #334155; border-radius: 4px; alternate-background-color: #253044; }
 QHeaderView::section { background-color: #334155; color: #F8FAFC; padding: 6px; border: none; font-weight: bold; }
+QHeaderView::section:hover { background-color: #475569; }
+QStatusBar { background-color: #1E293B; color: #94A3B8; border-top: 1px solid #334155; font-size: 12px; }
+QScrollBar:vertical { background: #1E293B; width: 8px; border: none; }
+QScrollBar::handle:vertical { background: #475569; border-radius: 4px; min-height: 20px; }
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0px; }
+QScrollBar:horizontal { background: #1E293B; height: 8px; border: none; }
+QScrollBar::handle:horizontal { background: #475569; border-radius: 4px; min-width: 20px; }
+QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal { width: 0px; }
+QToolTip { background-color: #1E293B; color: #F8FAFC; border: 1px solid #475569; padding: 4px; border-radius: 4px; }
 """
 
 class CrosshairChartView(QChartView):
@@ -212,7 +221,7 @@ class HospitalDashboard(QMainWindow):
         btn_back = QPushButton(" Voltar")
         btn_back.setIcon(self.style().standardIcon(QStyle.SP_ArrowBack))
         btn_back.setStyleSheet("QPushButton { background: #334155; color: #F8FAFC; padding: 10px 15px; border-radius: 6px; font-weight: bold; } QPushButton:hover { background: #475569; }")
-        btn_back.clicked.connect(lambda: self.root_stack.setCurrentIndex(0))
+        btn_back.clicked.connect(self.go_back_with_confirmation)
         header_layout.addWidget(btn_back)
         
         self.main_layout.addLayout(header_layout)
@@ -336,7 +345,13 @@ class HospitalDashboard(QMainWindow):
         btn_export.setStyleSheet("QPushButton { background: #10B981; color: white; padding: 15px; border-radius: 6px; font-size: 16px; font-weight: bold; } QPushButton:hover { background: #059669; }")
         btn_export.clicked.connect(self.export_data)
         c_layout.addWidget(btn_export)
-        
+
+        btn_demo = QPushButton("Visualizar com Dados de Demonstração")
+        btn_demo.setToolTip("Acessa o dashboard com dados fictícios de exemplo, sem precisar importar planilhas.")
+        btn_demo.setStyleSheet("QPushButton { background: #334155; color: #CBD5E1; padding: 10px; border-radius: 6px; font-size: 13px; font-weight: bold; border: 1px solid #475569; } QPushButton:hover { background: #475569; color: white; }")
+        btn_demo.clicked.connect(self.load_demo_data)
+        c_layout.addWidget(btn_demo)
+
         # Histórico
         self.history_path_file = os.path.join(os.path.dirname(__file__), 'data', 'history.json')
         history_title = QLabel("Histórico de Importações Recentes:")
@@ -380,6 +395,11 @@ class HospitalDashboard(QMainWindow):
                         
                         list_item = QListWidgetItem(display_text)
                         list_item.setData(Qt.UserRole, item)
+                        tooltip_parts = []
+                        if equip and equip != 'N/A': tooltip_parts.append(f"Equipamentos: {equip}")
+                        if os_antiga: tooltip_parts.append(f"OS Antiga: {os_antiga}")
+                        if os_atual: tooltip_parts.append(f"OS Atual: {os_atual}")
+                        list_item.setToolTip("\n".join(tooltip_parts))
                         self.history_list.addItem(list_item)
             except Exception as e:
                 print(f"Erro ao ler histórico: {e}")
@@ -442,13 +462,26 @@ class HospitalDashboard(QMainWindow):
         except Exception as e:
             QMessageBox.warning(self, "Erro", f"Ocorreu um erro ao exportar: {e}")
 
+    def load_demo_data(self):
+        self.equipment_data = MOCK_EQUIPMENT
+        self.df_os = pd.DataFrame()
+        self.root_stack.setCurrentIndex(1)
+        self.update_dashboard_data()
+
     def load_data(self):
+        progress = QProgressDialog("Processando dados, aguarde...", None, 0, 0, self)
+        progress.setWindowTitle("Carregando")
+        progress.setWindowModality(Qt.WindowModal)
+        progress.setMinimumDuration(0)
+        progress.setValue(0)
+        QApplication.processEvents()
+
+        proceed = True
         try:
             self.df_os = migrar_dados_servico(
                 caminho_os_antiga=self.os_antiga_path.text() or None,
                 caminho_os_atual=self.os_atual_path.text() or None
             )
-            print(f"DEBUG: df_os size after migration: {len(self.df_os)}")
             self.save_history()
 
             valid_equipment = False
@@ -460,22 +493,35 @@ class HospitalDashboard(QMainWindow):
                         valid_equipment = True
                 except Exception as e:
                     print(f"Erro processando equipamentos: {e}")
-            
+
             if not valid_equipment:
                 self.equipment_data = MOCK_EQUIPMENT
 
             if not self.df_os.empty:
+                progress.close()
                 dialog = DataPreviewDialog(self.df_os, self)
                 if dialog.exec() != QDialog.Accepted:
-                    return
+                    proceed = False
 
         except Exception as e:
             QMessageBox.warning(self, "Aviso", f"Não foi possível carregar os dados OS.\nUsando dados MOCK.\n\nDetalhe: {e}")
             self.df_os = pd.DataFrame()
             self.equipment_data = MOCK_EQUIPMENT
-            
-        self.root_stack.setCurrentIndex(1)
-        self.update_dashboard_data()
+        finally:
+            progress.close()
+
+        if proceed:
+            self.root_stack.setCurrentIndex(1)
+            self.update_dashboard_data()
+
+    def go_back_with_confirmation(self):
+        reply = QMessageBox.question(
+            self, "Voltar para Importação",
+            "Deseja voltar para a tela de importação?\nOs dados carregados serão mantidos.",
+            QMessageBox.Yes | QMessageBox.No, QMessageBox.No
+        )
+        if reply == QMessageBox.Yes:
+            self.root_stack.setCurrentIndex(0)
 
     def open_settings(self):
         dialog = QDialog(self)
@@ -565,14 +611,19 @@ class HospitalDashboard(QMainWindow):
         self.setup_kpi_row()
         self.update_global_chart()
         self.update_cost_analysis_charts()
-        
+
         self.f_setor.blockSignals(True)
         self.f_setor.clear()
         self.f_setor.addItems(["Todos Setores"] + sorted(list(set(i.get("setor", "Desconhecido") for i in self.equipment_data))))
         self.f_setor.blockSignals(False)
-        
+
         self.update_age_donut()
         self.apply_filters()
+
+        n_equip = len(self.filtered_equipment_data)
+        n_os = sum(len(e.get("os", [])) for e in self.filtered_equipment_data)
+        n_setores = len(self.selected_setores) if self.selected_setores else len(set(i.get("setor") for i in self.equipment_data))
+        self.statusBar().showMessage(f"  {n_equip} equipamentos  |  {n_os} OS  |  {n_setores} setor(es) selecionado(s)")
 
     def switch_tab(self, index):
         self.tabs.setCurrentIndex(index)
@@ -1187,11 +1238,20 @@ class HospitalDashboard(QMainWindow):
         filters_eq.addWidget(self.f_setor)
         equip_vbox.addLayout(filters_eq)
         
+        self.lbl_equip_count = QLabel("0 equipamentos")
+        self.lbl_equip_count.setStyleSheet("color: #64748B; font-size: 11px;")
+        equip_vbox.addWidget(self.lbl_equip_count)
+
         self.equip_table = QTableWidget()
         self.equip_table.setColumnCount(6)
         self.equip_table.setHorizontalHeaderLabels(["Identificador", "Modelo", "Setor", "Crit.", "Aquisição", "Status"])
         self.equip_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.equip_table.setFixedHeight(300)
+        self.equip_table.setAlternatingRowColors(True)
+        self.equip_table.setSortingEnabled(True)
+        self.equip_table.setSelectionBehavior(QTableWidget.SelectRows)
+        self.equip_table.setToolTip("Clique duas vezes em um equipamento para ver detalhes")
+        self.equip_table.cellDoubleClicked.connect(self.on_equip_table_double_click)
         equip_vbox.addWidget(self.equip_table)
         
         self.data_layout.addWidget(equip_group)
@@ -1215,15 +1275,32 @@ class HospitalDashboard(QMainWindow):
         filters_os.addWidget(self.f_os_min_cost)
         os_vbox.addLayout(filters_os)
         
+        self.lbl_os_count = QLabel("0 ordens de serviço")
+        self.lbl_os_count.setStyleSheet("color: #64748B; font-size: 11px;")
+        os_vbox.addWidget(self.lbl_os_count)
+
         self.os_table = QTableWidget()
         self.os_table.setColumnCount(5)
         self.os_table.setHorizontalHeaderLabels(["ID Equip.", "Modelo", "Data", "Custo", "Descrição"])
         self.os_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         self.os_table.setFixedHeight(300)
+        self.os_table.setAlternatingRowColors(True)
+        self.os_table.setSortingEnabled(True)
+        self.os_table.setSelectionBehavior(QTableWidget.SelectRows)
         os_vbox.addWidget(self.os_table)
         
         self.data_layout.addWidget(os_group)
         self.data_layout.addStretch()
+
+    def on_equip_table_double_click(self, row, _col):
+        id_item = self.equip_table.item(row, 0)
+        if not id_item:
+            return
+        identifier = id_item.text()
+        for eq in self.equipment_data:
+            if eq.get("identificador") == identifier:
+                self.show_equipment_modal(eq)
+                break
 
     def apply_filters(self):
         # 1. Filter Equipments
@@ -1232,7 +1309,8 @@ class HospitalDashboard(QMainWindow):
             filtered_eq = [i for i in filtered_eq if self.f_modelo.text().lower() in i["modelo"].lower()]
         if self.f_setor.currentText() != "Todos Setores":
             filtered_eq = [i for i in filtered_eq if i["setor"] == self.f_setor.currentText()]
-            
+
+        self.equip_table.setSortingEnabled(False)
         self.equip_table.setRowCount(len(filtered_eq))
         for r, item in enumerate(filtered_eq):
             self.equip_table.setItem(r, 0, QTableWidgetItem(item.get("identificador", "N/A")))
@@ -1241,6 +1319,8 @@ class HospitalDashboard(QMainWindow):
             self.equip_table.setItem(r, 3, QTableWidgetItem(str(item["criticidade"])))
             self.equip_table.setItem(r, 4, QTableWidgetItem(item["data_aquisicao"]))
             self.equip_table.setItem(r, 5, QTableWidgetItem(item["status"]))
+        self.equip_table.setSortingEnabled(True)
+        self.lbl_equip_count.setText(f"{len(filtered_eq)} equipamento(s) encontrado(s)")
 
         # 2. Filter OS
         all_os = []
@@ -1253,13 +1333,14 @@ class HospitalDashboard(QMainWindow):
                     "custo": os_item["custo"],
                     "desc": os_item["desc"]
                 })
-                
+
         filtered_os = all_os
         if self.f_os_id.text():
             filtered_os = [i for i in filtered_os if self.f_os_id.text().lower() in i["id"].lower()]
         if self.f_os_min_cost.value() > 0:
             filtered_os = [i for i in filtered_os if i["custo"] >= self.f_os_min_cost.value()]
-            
+
+        self.os_table.setSortingEnabled(False)
         self.os_table.setRowCount(len(filtered_os))
         for r, item in enumerate(filtered_os):
             self.os_table.setItem(r, 0, QTableWidgetItem(item["id"]))
@@ -1267,6 +1348,8 @@ class HospitalDashboard(QMainWindow):
             self.os_table.setItem(r, 2, QTableWidgetItem(item["data"]))
             self.os_table.setItem(r, 3, QTableWidgetItem(f"R$ {item['custo']:,.2f}"))
             self.os_table.setItem(r, 4, QTableWidgetItem(item["desc"]))
+        self.os_table.setSortingEnabled(True)
+        self.lbl_os_count.setText(f"{len(filtered_os)} ordem(ns) de serviço encontrada(s)")
 
 def main():
     app = QApplication(sys.argv)

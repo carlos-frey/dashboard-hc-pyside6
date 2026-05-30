@@ -55,14 +55,25 @@ def migrar_dados_servico(caminho_os_antiga=None, caminho_os_atual=None):
     # Processar Antigo
     if not df_contrato_sl.empty:
         df_contrato_sl.rename(columns=mapeamento_antigo, inplace=True)
-        # Gerar Identificador
+        # Mapear coluna de data para 'Abertura' — o formato antigo não tem esse nome por padrão
+        if 'Abertura' not in df_contrato_sl.columns:
+            for _date_col in ('Data', 'Data Abertura', 'Data de Abertura', 'Data Início', 'Data inicio', 'Data_Abertura'):
+                if _date_col in df_contrato_sl.columns:
+                    df_contrato_sl.rename(columns={_date_col: 'Abertura'}, inplace=True)
+                    break
+            else:
+                print("Aviso: coluna de data não encontrada no arquivo OS antigo. Histórico de datas não disponível.")
+        # Gerar Identificador — strip para evitar espaços que causam '' ou falsos matches
         def gerar_identificador(row):
-            tag = str(row['TAG']) if 'TAG' in row and pd.notna(row['TAG']) else ''
-            pat = str(row['Patrimônio']) if 'Patrimônio' in row and pd.notna(row['Patrimônio']) else ''
-            if tag and pat: return f"{tag},{pat}"
+            tag = str(row['TAG']).strip() if 'TAG' in row and pd.notna(row['TAG']) else ''
+            pat = str(row['Patrimônio']).strip() if 'Patrimônio' in row and pd.notna(row['Patrimônio']) else ''
+            if tag and pat:
+                return f"{tag},{pat}"
             return tag or pat
-        
+
         df_contrato_sl['Identificador'] = df_contrato_sl.apply(gerar_identificador, axis=1)
+        # Descartar linhas sem identificador — não podem ser vinculadas a nenhum equipamento
+        df_contrato_sl = df_contrato_sl[df_contrato_sl['Identificador'] != '']
 
     # 4. Unificar
     # Usamos as colunas do df_recente como base se existir, senão as do antigo

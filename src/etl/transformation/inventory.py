@@ -121,7 +121,9 @@ def integrar_dados_dashboard(caminho_inventario, df_os_migrado, caminho_criticid
         df_os['Identificador'] = ''
         
     df_os['Identificador'] = df_os['Identificador'].astype(str).str.strip()
-    
+    # Remover OS sem identificador — agrupá-las sob '' corromperia custos de outros equipamentos
+    df_os = df_os[df_os['Identificador'].notna() & (df_os['Identificador'] != '')]
+
     if 'Custo' in df_os.columns:
         df_os['Custo_Limpo'] = df_os['Custo'].astype(str).str.replace(r'[^\d,\.]', '', regex=True).str.replace(',', '.')
         df_os['Custo_Limpo'] = pd.to_numeric(df_os['Custo_Limpo'], errors='coerce').fillna(0)
@@ -142,13 +144,22 @@ def integrar_dados_dashboard(caminho_inventario, df_os_migrado, caminho_criticid
         df_os['Desc'] = 'Manutenção'
     
     os_por_equipamento = df_os.groupby('Identificador')
-    
+
+    # Detectar coluna de setor — aceita variações comuns de nome
+    _setor_col = next(
+        (c for c in ('Localização', 'Localizacao', 'Setor', 'Local', 'Setor/Localização') if c in df_equip.columns),
+        None
+    )
+    if _setor_col is None:
+        print("Aviso: coluna de localização/setor não encontrada no inventário. Usando 'Desconhecido'.")
+
     for _, row in df_equip.iterrows():
         ident = str(row['Identificador'])
-        
+
+        _setor_val = str(row[_setor_col]).strip() if _setor_col and pd.notna(row[_setor_col]) else 'Desconhecido'
         eq_dict = {
             "modelo": str(row.get('Modelo', 'Desconhecido')),
-            "setor": str(row.get('Localização', 'Desconhecido')),
+            "setor": _setor_val or 'Desconhecido',
             "criticidade": int(row.get('Criticidade', 1)),
             "data_aquisicao": str(row.get('Data de Aquisição', '2015-01-01')),
             "status": str(row.get('Status', 'Em uso')),

@@ -381,6 +381,7 @@ class HospitalDashboard(QMainWindow):
         self.equipment_data = MOCK_EQUIPMENT
         self.filtered_equipment_data = self.equipment_data
         self.df_os = pd.DataFrame()
+        self._all_os_flat = []
         
         self.setup_kpi_row()
         self.setup_insights_row()
@@ -625,7 +626,7 @@ class HospitalDashboard(QMainWindow):
         crit = self.crit_path.text()
         os_antiga = self.os_antiga_path.text()
         os_atual = self.os_atual_path.text()
-        if not equip and not os_antiga and not os_atual and not crit:
+        if not equip and not os_antiga and not os_atual:
             return
             
         history = []
@@ -633,8 +634,8 @@ class HospitalDashboard(QMainWindow):
             try:
                 with open(self.history_path_file, 'r', encoding='utf-8') as f:
                     history = json.load(f)
-            except:
-                pass
+            except (json.JSONDecodeError, ValueError) as e:
+                print(f"Aviso: histórico corrompido, iniciando novo histórico. Detalhes: {e}")
                 
         new_entry = {
             'equip': equip,
@@ -798,7 +799,21 @@ class HospitalDashboard(QMainWindow):
             self.selected_setores = [s for s, cb in checkboxes if cb.isChecked()]
             self.update_dashboard_data_filtered()
 
+    def _build_os_cache(self):
+        self._all_os_flat = [
+            {
+                "id": eq.get("identificador", "N/A"),
+                "modelo": eq["modelo"],
+                "data": os_item["data"],
+                "custo": os_item["custo"],
+                "desc": os_item["desc"],
+            }
+            for eq in self.equipment_data
+            for os_item in eq.get("os", [])
+        ]
+
     def update_dashboard_data(self):
+        self._build_os_cache()
         # Initialize selected sectors with defaults
         all_setores = sorted(list(set(i.get("setor", "Desconhecido") for i in self.equipment_data)))
         defaults = ["UTI Neonatal", "UTI Adulto", "Bloco Cirúrgico", "Centro Obstétrico"]
@@ -840,6 +855,7 @@ class HospitalDashboard(QMainWindow):
     def setup_kpi_row(self):
         # Limpar layout anterior se existir
         if hasattr(self, 'kpi_layout_widget'):
+            self.analysis_layout.removeWidget(self.kpi_layout_widget)
             self.kpi_layout_widget.deleteLater()
             
         self.kpi_layout_widget = QWidget()
@@ -848,11 +864,14 @@ class HospitalDashboard(QMainWindow):
         kpi_layout.setSpacing(24)
         
         total_equip = len(self.filtered_equipment_data)
-        
-        # Calculate OS and Cost based on filtered equipment
-        total_os = sum(len(equip.get("os", [])) for equip in self.filtered_equipment_data)
-        total_cost = sum(os_data.get("custo", 0) for equip in self.filtered_equipment_data for os_data in equip.get("os", []))
-        
+
+        if not self.df_os.empty:
+            total_os = obter_total_os_emitidas(self.df_os)
+            total_cost = obter_total_gasto_os(self.df_os)
+        else:
+            total_os = sum(len(equip.get("os", [])) for equip in self.filtered_equipment_data)
+            total_cost = sum(os_data.get("custo", 0) for equip in self.filtered_equipment_data for os_data in equip.get("os", []))
+
         total_cost_str = f"R$ {total_cost:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
         def create_kpi_card(title, value, icon, accent):
@@ -1055,7 +1074,10 @@ class HospitalDashboard(QMainWindow):
             setor = equip["setor"]
             e_cost = 0
             for os in equip["os"]:
-                year = datetime.strptime(os["data"], "%Y-%m-%d").year
+                try:
+                    year = datetime.strptime(os["data"], "%Y-%m-%d").year
+                except (ValueError, KeyError):
+                    continue
                 c = os["custo"]
                 e_cost += c
                 cost_by_year[year] = cost_by_year.get(year, 0) + c
@@ -1173,13 +1195,14 @@ class HospitalDashboard(QMainWindow):
         chart.legend().setAlignment(Qt.AlignBottom); chart.legend().setLabelColor(QColor("#C4D8EE"))
         self.age_donut_view.setChart(chart)
         
-        # Recalcula dinamicamente a priorização com o novo corte da UI e propaga para o gráfico Top 5
+        # Recalcula scores de TODOS os equipamentos (não só os filtrados) para evitar scores stale
+        all_data = self.equipment_data
         max_custo = 0
-        for eq in data_source:
+        for eq in all_data:
             tot = sum(o.get('custo', 0) for o in eq.get('os', []))
             if tot > max_custo: max_custo = tot
-            
-        for eq in data_source:
+
+        for eq in all_data:
             try:
                 anos = current_year - int(eq["data_aquisicao"].split("-")[0])
             except:
@@ -1544,19 +1567,8 @@ class HospitalDashboard(QMainWindow):
         self.equip_table.setSortingEnabled(True)
         self.lbl_equip_count.setText(f"{len(filtered_eq)} equipamento(s) encontrado(s)")
 
-        # 2. Filter OS
-        all_os = []
-        for eq in self.equipment_data:
-            for os_item in eq.get("os", []):
-                all_os.append({
-                    "id": eq.get("identificador", "N/A"),
-                    "modelo": eq["modelo"],
-                    "data": os_item["data"],
-                    "custo": os_item["custo"],
-                    "desc": os_item["desc"]
-                })
-
-        filtered_os = all_os
+        # 2. Filter OS — usa cache pré-computado para evitar O(E×O) por tecla pressionada
+        filtered_os = self._all_os_flat
         if self.f_os_id.text():
             filtered_os = [i for i in filtered_os if self.f_os_id.text().lower() in i["id"].lower()]
         if self.f_os_min_cost.value() > 0:

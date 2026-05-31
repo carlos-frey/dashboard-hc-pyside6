@@ -1,0 +1,35 @@
+[
+    {
+        "id": "357c548f-42e0-4c39-adf2-efc11db5e303",
+        "name": "UTI adulto",
+        "date_saved": "2026-05-31 09:03",
+        "files": {
+            "equip": "/home/carlos/Documentos/ETL/src/etl/data/Inventario_HC_UFPE.csv",
+            "crit": "/home/carlos/Documentos/TCC/projeto/planilhas/Novos dados - criticidade/planilha de equipamentos final.csv",
+            "os_antiga": "/home/carlos/Documentos/ETL/src/etl/data/Corretivas_Externas_2018_a_2024.csv",
+            "os_atual": "/home/carlos/Documentos/ETL/src/etl/data/ServicoExternoPeriodo20251113092221.csv"
+        },
+        "filters": {
+            "selected_setores": [
+                "CENTRO CIRÚRGICO",
+                "UTI ADULTO"
+            ],
+            "age_threshold": 10,
+            "active_years": [
+                2018,
+                2019,
+                2020,
+                2021,
+                2022,
+                2023,
+                2024,
+                2025
+            ],
+            "cb_excluir_custo_zero": false,
+            "f_modelo": "",
+            "f_setor": "Todos Setores",
+            "f_os_id": "",
+            "f_os_min_cost": 0
+        }
+    }
+]

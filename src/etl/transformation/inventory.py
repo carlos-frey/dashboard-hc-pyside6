@@ -1,6 +1,22 @@
 import pandas as pd
 from datetime import datetime
 
+from etl.transformation.os_migration import COL_SERVICO
+
+
+def _chave_identificador(valor):
+    """Chave de casamento OS<->inventário.
+
+    As OS guardam 'TAG,Patrimônio' (ex.: 'HCPE-1417,410.343') enquanto o
+    inventário usa só a TAG (ex.: 'HCPE-1417'). Normalizamos ambos para a
+    TAG (parte antes da primeira vírgula) para não perder ~60% dos vínculos.
+    """
+    s = str(valor).strip()
+    if s.lower() in ('', 'nan'):
+        return ''
+    return s.split(',')[0].strip()
+
+
 def processar_inventario_e_os(caminho_inventario, df_os_migrado, caminho_criticidade=None):
     if not caminho_inventario:
         return None
@@ -14,7 +30,7 @@ def processar_inventario_e_os(caminho_inventario, df_os_migrado, caminho_critici
     if 'Aquisição' in df_inventario.columns:
         df_inventario.rename(columns={'Aquisição': 'Data de Aquisição'}, inplace=True)
         
-    df_inventario['Identificador'] = df_inventario['Identificador'].astype(str).str.strip()
+    df_inventario['Identificador'] = df_inventario['Identificador'].map(_chave_identificador)
     df_inventario['Modelo'] = df_inventario['Modelo'].astype(str).str.strip()
     
     # Adicionar criticidade se a planilha foi fornecida
@@ -44,12 +60,11 @@ def processar_inventario_e_os(caminho_inventario, df_os_migrado, caminho_critici
         print("Aviso: Coluna 'Identificador' não encontrada nos serviços migrados.")
         df_servicos['Identificador'] = ''
         
-    df_servicos['Identificador'] = df_servicos['Identificador'].astype(str).str.strip()
-    
-    # Cleaning cost
+    df_servicos['Identificador'] = df_servicos['Identificador'].map(_chave_identificador)
+
+    # Custo já vem numérico e normalizado por origem de migrar_dados_servico
     if 'Custo' in df_servicos.columns:
-        df_servicos['Custo_Limpo'] = df_servicos['Custo'].astype(str).str.replace(r'[^\d,\.]', '', regex=True).str.replace(',', '.')
-        df_servicos['Custo_Limpo'] = pd.to_numeric(df_servicos['Custo_Limpo'], errors='coerce').fillna(0)
+        df_servicos['Custo_Limpo'] = pd.to_numeric(df_servicos['Custo'], errors='coerce').fillna(0)
     else:
         df_servicos['Custo_Limpo'] = 0
         
@@ -91,8 +106,9 @@ def processar_inventario_e_os(caminho_inventario, df_os_migrado, caminho_critici
         
     df_final['Score'] = idade_pts + crit_pts + custo_pts
     
-    # Convert Data to string for UI
-    df_final['Data de Aquisição'] = df_final['Data de Aquisição'].dt.strftime('%Y-%m-%d').fillna('2015-01-01')
+    # Convert Data to string for UI — datas ausentes ficam vazias (não um valor
+    # fixo que mascararia dados faltantes como se fossem reais).
+    df_final['Data de Aquisição'] = df_final['Data de Aquisição'].dt.strftime('%Y-%m-%d').fillna('')
     
     # Clean valor
     if 'Valor (R$)' in df_final.columns:
@@ -120,26 +136,28 @@ def integrar_dados_dashboard(caminho_inventario, df_os_migrado, caminho_criticid
     if 'Identificador' not in df_os.columns:
         df_os['Identificador'] = ''
         
-    df_os['Identificador'] = df_os['Identificador'].astype(str).str.strip()
+    df_os['Identificador'] = df_os['Identificador'].map(_chave_identificador)
     # Remover OS sem identificador — agrupá-las sob '' corromperia custos de outros equipamentos
-    df_os = df_os[df_os['Identificador'].notna() & (df_os['Identificador'] != '')]
+    df_os = df_os[df_os['Identificador'] != '']
 
+    # Custo já vem numérico e normalizado por origem de migrar_dados_servico
     if 'Custo' in df_os.columns:
-        df_os['Custo_Limpo'] = df_os['Custo'].astype(str).str.replace(r'[^\d,\.]', '', regex=True).str.replace(',', '.')
-        df_os['Custo_Limpo'] = pd.to_numeric(df_os['Custo_Limpo'], errors='coerce').fillna(0)
+        df_os['Custo_Limpo'] = pd.to_numeric(df_os['Custo'], errors='coerce').fillna(0)
     else:
         df_os['Custo_Limpo'] = 0
-        
-    # Usando Abertura que é o nome padronizado agora
+
+    # 'Abertura' já vem como datetime canônico (normalizado por origem)
     if 'Abertura' in df_os.columns:
-        df_os['Data_Limpa'] = pd.to_datetime(df_os['Abertura'], errors='coerce', dayfirst=True)
+        df_os['Data_Limpa'] = pd.to_datetime(df_os['Abertura'], errors='coerce')
     else:
         df_os['Data_Limpa'] = pd.NaT
-        
-    df_os['Data_Str'] = df_os['Data_Limpa'].dt.strftime('%Y-%m-%d').fillna('2020-01-01')
-    
-    if 'Serviço;Assistência' in df_os.columns:
-        df_os['Desc'] = df_os['Serviço;Assistência'].fillna('Manutenção')
+
+    # Datas inválidas ficam vazias — não são empilhadas num dia fixo (que criava
+    # um pico artificial). Os gráficos por data simplesmente ignoram OS sem data.
+    df_os['Data_Str'] = df_os['Data_Limpa'].dt.strftime('%Y-%m-%d').fillna('')
+
+    if COL_SERVICO in df_os.columns:
+        df_os['Desc'] = df_os[COL_SERVICO].fillna('Manutenção').replace('', 'Manutenção')
     else:
         df_os['Desc'] = 'Manutenção'
     
@@ -161,7 +179,7 @@ def integrar_dados_dashboard(caminho_inventario, df_os_migrado, caminho_criticid
             "modelo": str(row.get('Modelo', 'Desconhecido')),
             "setor": _setor_val or 'Desconhecido',
             "criticidade": int(row.get('Criticidade', 1)),
-            "data_aquisicao": str(row.get('Data de Aquisição', '2015-01-01')),
+            "data_aquisicao": str(row.get('Data de Aquisição', '') or ''),
             "status": str(row.get('Status', 'Em uso')),
             "valor": float(row.get('Valor', 0)),
             "score": float(row.get('Score', 50)),

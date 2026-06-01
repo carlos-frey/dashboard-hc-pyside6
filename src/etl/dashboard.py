@@ -14,8 +14,8 @@ from PySide6.QtWidgets import (
     QGraphicsLineItem, QTabWidget, QStackedWidget, QListWidget, QListWidgetItem,
     QStyle, QProgressDialog
 )
-from PySide6.QtCore import Qt, QDateTime, QEvent, QDate
-from PySide6.QtGui import QColor, QPainter, QFont, QPen, QIcon
+from PySide6.QtCore import Qt, QDateTime, QEvent, QDate, QSize
+from PySide6.QtGui import QColor, QPainter, QFont, QPen, QIcon, QPixmap
 from PySide6.QtCharts import QChart, QChartView, QPieSeries, QLineSeries, QDateTimeAxis, QValueAxis, QScatterSeries, QBarSet, QBarCategoryAxis, QHorizontalBarSeries
 
 from etl.transformation.os_migration import (
@@ -319,7 +319,7 @@ class HospitalDashboard(QMainWindow):
         header_card = QFrame()
         header_card.setStyleSheet("""
             QFrame {
-                background: qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 #0A1628,stop:0.6 #0A1628,stop:1 #060D18);
+                background: #0A1628;
                 border-radius: 12px;
                 border: 1px solid #1A2D45;
             }
@@ -337,9 +337,13 @@ class HospitalDashboard(QMainWindow):
         header = QLabel("Dashboard de Engenharia Clínica")
         header.setStyleSheet("font-size: 20px; font-weight: 800; color: #F0F6FF; border: none; background: transparent;")
         sub_header = QLabel("Gestão e monitoramento de equipamentos hospitalares")
-        sub_header.setStyleSheet("font-size: 11px; color: #2D4A68; border: none; background: transparent;")
+        sub_header.setStyleSheet("font-size: 12px; color: #8FB4DC; border: none; background: transparent;")
+        self.lbl_loaded_files = QLabel("")
+        self.lbl_loaded_files.setStyleSheet("font-size: 11px; color: #5A8AB8; border: none; background: transparent;")
+        self.lbl_loaded_files.setTextInteractionFlags(Qt.TextSelectableByMouse)
         title_block.addWidget(header)
         title_block.addWidget(sub_header)
+        title_block.addWidget(self.lbl_loaded_files)
         header_layout.addLayout(title_block)
         header_layout.addStretch()
 
@@ -357,8 +361,10 @@ class HospitalDashboard(QMainWindow):
         btn_settings.clicked.connect(self.open_settings)
         header_layout.addWidget(btn_settings)
 
-        btn_save_analysis = QPushButton("⊙")
+        btn_save_analysis = QPushButton()
         btn_save_analysis.setStyleSheet(_icon_btn_qss)
+        btn_save_analysis.setIcon(QIcon(self._action_icon("save", 22, "#7BA8D8")))
+        btn_save_analysis.setIconSize(QSize(22, 22))
         btn_save_analysis.setToolTip("Salvar análise")
         btn_save_analysis.clicked.connect(self.save_analysis)
         header_layout.addWidget(btn_save_analysis)
@@ -374,6 +380,10 @@ class HospitalDashboard(QMainWindow):
         self.active_years = set(range(2018, 2026))
         self.selected_setores = []
         self._excluir_custo_zero = False
+        # Pesos do algoritmo de priorização de substituição (pontos máximos por critério)
+        self._peso_idade = 20
+        self._peso_criticidade = 50
+        self._peso_custo = 30
         self._pending_filters = None
         self._auto_confirm_next_load = False
         if not hasattr(self, '_overlays'): self._overlays = []
@@ -396,15 +406,68 @@ class HospitalDashboard(QMainWindow):
         self.filtered_equipment_data = self.equipment_data
         self.df_os = pd.DataFrame()
         self._all_os_flat = []
-        
+        self._chart_data = {}
+
         self.setup_kpi_row()
         self.setup_insights_row()
         self.setup_history_row()
         self.setup_cost_analysis_row()
         self.setup_data_tab()
 
-    def _make_chart_card(self, title):
-        """Returns (QFrame, content_QVBoxLayout). Title is a styled QLabel inside the card."""
+    def _action_icon(self, kind, px=20, color="#7BA8D8"):
+        """Ícone vetorial desenhado (não depende de glifos de fonte, que bugam
+        em alguns ambientes). kind: 'play' | 'close' | 'save'."""
+        from PySide6.QtCore import QPointF, QRectF
+        from PySide6.QtGui import QPolygonF, QPainterPath
+        pm = QPixmap(px, px)
+        pm.fill(Qt.transparent)
+        p = QPainter(pm)
+        p.setRenderHint(QPainter.Antialiasing)
+        col = QColor(color)
+
+        if kind == "play":
+            p.setPen(Qt.NoPen)
+            p.setBrush(col)
+            m = px * 0.30
+            tri = QPolygonF([QPointF(m, m), QPointF(m, px - m), QPointF(px - m, px / 2)])
+            p.drawPolygon(tri)
+        elif kind == "close":
+            pen = QPen(col)
+            pen.setWidthF(max(2.0, px * 0.11))
+            pen.setCapStyle(Qt.RoundCap)
+            p.setPen(pen)
+            m = px * 0.30
+            p.drawLine(QPointF(m, m), QPointF(px - m, px - m))
+            p.drawLine(QPointF(px - m, m), QPointF(m, px - m))
+        elif kind == "save":
+            # Disquete (metáfora clássica de "salvar")
+            pen = QPen(col)
+            pen.setWidthF(max(1.6, px * 0.075))
+            pen.setJoinStyle(Qt.RoundJoin)
+            p.setPen(pen)
+            p.setBrush(Qt.NoBrush)
+            m = px * 0.20
+            x0, y0, x1, y1 = m, m, px - m, px - m
+            cut = (x1 - x0) * 0.26
+            body = QPainterPath()
+            body.moveTo(x0, y0)
+            body.lineTo(x1 - cut, y0)
+            body.lineTo(x1, y0 + cut)
+            body.lineTo(x1, y1)
+            body.lineTo(x0, y1)
+            body.closeSubpath()
+            p.drawPath(body)
+            w = x1 - x0
+            h = y1 - y0
+            # obturador (topo) e etiqueta (base)
+            p.drawRect(QRectF(x0 + w * 0.26, y0, w * 0.40, h * 0.30))
+            p.drawRect(QRectF(x0 + w * 0.20, y1 - h * 0.34, w * 0.60, h * 0.34))
+        p.end()
+        return pm
+
+    def _make_chart_card(self, title, export_key=None):
+        """Returns (QFrame, content_QVBoxLayout). The header holds the title and,
+        quando export_key é informado, botões para Copiar/Exportar os dados do gráfico."""
         frame = QFrame()
         frame.setStyleSheet(
             "QFrame { background: #0A1628; border: 1px solid #1A2D45; border-radius: 12px; }"
@@ -412,13 +475,67 @@ class HospitalDashboard(QMainWindow):
         vbox = QVBoxLayout(frame)
         vbox.setContentsMargins(20, 16, 20, 16)
         vbox.setSpacing(10)
+
+        header = QHBoxLayout()
+        header.setSpacing(8)
         lbl = QLabel(title.upper())
         lbl.setStyleSheet(
             "color: #5A8AB8; font-size: 11px; font-weight: bold; "
             "letter-spacing: 1.5px; border: none; background: transparent;"
         )
-        vbox.addWidget(lbl)
+        header.addWidget(lbl)
+        header.addStretch()
+
+        if export_key:
+            btn_copy = QPushButton("⧉  Copiar")
+            btn_copy.setObjectName("ExportBtn")
+            btn_copy.setCursor(Qt.PointingHandCursor)
+            btn_copy.setToolTip("Copiar os dados deste gráfico (colável em planilha)")
+            btn_copy.clicked.connect(lambda _=False, k=export_key: self._copy_chart_data(k))
+            btn_exp = QPushButton("⭳  Exportar")
+            btn_exp.setObjectName("ExportBtn")
+            btn_exp.setCursor(Qt.PointingHandCursor)
+            btn_exp.setToolTip("Exportar os dados deste gráfico para planilha (CSV)")
+            btn_exp.clicked.connect(lambda _=False, k=export_key: self._export_chart_data(k))
+            header.addWidget(btn_copy)
+            header.addWidget(btn_exp)
+
+        vbox.addLayout(header)
         return frame, vbox
+
+    def _set_chart_data(self, key, headers, rows):
+        """Registra a tabela subjacente de um gráfico para Copiar/Exportar."""
+        if not hasattr(self, '_chart_data'):
+            self._chart_data = {}
+        self._chart_data[key] = (headers, rows)
+
+    def _copy_chart_data(self, key):
+        data = getattr(self, '_chart_data', {}).get(key)
+        if not data or not data[1]:
+            QMessageBox.information(self, "Sem dados", "Não há dados para copiar neste gráfico.")
+            return
+        headers, rows = data
+        linhas = ["\t".join(str(c) for c in headers)]
+        linhas += ["\t".join(str(c) for c in r) for r in rows]
+        QApplication.clipboard().setText("\n".join(linhas))
+        self.statusBar().showMessage("  Dados copiados para a área de transferência.", 4000)
+
+    def _export_chart_data(self, key):
+        data = getattr(self, '_chart_data', {}).get(key)
+        if not data or not data[1]:
+            QMessageBox.information(self, "Sem dados", "Não há dados para exportar neste gráfico.")
+            return
+        headers, rows = data
+        path, _ = QFileDialog.getSaveFileName(self, "Exportar dados", f"{key}.csv", "CSV (*.csv)")
+        if not path:
+            return
+        try:
+            df = pd.DataFrame(rows, columns=headers)
+            # utf-8-sig garante acentuação correta ao abrir no Excel
+            df.to_csv(path, index=False, sep=';', encoding='utf-8-sig')
+            self.statusBar().showMessage(f"  Dados exportados para {os.path.basename(path)}.", 5000)
+        except Exception as e:
+            QMessageBox.warning(self, "Erro", f"Não foi possível exportar: {e}")
 
     def _make_file_row(self, placeholder, dialog_title, icon="📄", optional=False):
         row_frame = QFrame()
@@ -505,7 +622,7 @@ class HospitalDashboard(QMainWindow):
         # Accent top bar
         top_accent = QFrame()
         top_accent.setFixedHeight(4)
-        top_accent.setStyleSheet("background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #1D4ED8, stop:1 #06B6D4); border-radius: 14px 14px 0 0; border: none;")
+        top_accent.setStyleSheet("background: #1D4ED8; border-radius: 14px 14px 0 0; border: none;")
         card_lay.addWidget(top_accent)
 
         inner = QWidget()
@@ -541,9 +658,9 @@ class HospitalDashboard(QMainWindow):
         # Action buttons
         btn_run = QPushButton("▶  Carregar Dados e Acessar Dashboard")
         btn_run.setStyleSheet("""
-            QPushButton { background: qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 #1D4ED8,stop:1 #0E7490);
+            QPushButton { background: #1D4ED8;
                           color: white; padding: 14px; border-radius: 8px; font-size: 14px; font-weight: 700; }
-            QPushButton:hover { background: qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 #2563EB,stop:1 #0891B2); }
+            QPushButton:hover { background: #2563EB; }
         """)
         btn_run.clicked.connect(self.load_data)
         inner_lay.addWidget(btn_run)
@@ -689,8 +806,30 @@ class HospitalDashboard(QMainWindow):
     def load_demo_data(self):
         self.equipment_data = MOCK_EQUIPMENT
         self.df_os = pd.DataFrame()
+        self._is_demo = True
         self.root_stack.setCurrentIndex(2)
         self.update_dashboard_data()
+
+    def _update_loaded_files_label(self):
+        """Mostra no cabeçalho da análise quais planilhas estão carregadas."""
+        if getattr(self, '_is_demo', False):
+            self.lbl_loaded_files.setText("📄  Dados de demonstração")
+            return
+        rotulos = [
+            ("Equipamentos", self.equip_path.text()),
+            ("Criticidade", self.crit_path.text()),
+            ("OS Antiga", self.os_antiga_path.text()),
+            ("OS Atual", self.os_atual_path.text()),
+        ]
+        partes = [f"{nome}: {os.path.basename(caminho)}" for nome, caminho in rotulos if caminho]
+        if partes:
+            self.lbl_loaded_files.setText("📄  " + "   ·   ".join(partes))
+            self.lbl_loaded_files.setToolTip(
+                "\n".join(f"{nome}: {caminho}" for nome, caminho in rotulos if caminho)
+            )
+        else:
+            self.lbl_loaded_files.setText("")
+            self.lbl_loaded_files.setToolTip("")
 
     def load_data(self):
         progress = QProgressDialog("Processando dados, aguarde...", None, 0, 0, self)
@@ -701,6 +840,7 @@ class HospitalDashboard(QMainWindow):
         QApplication.processEvents()
 
         proceed = True
+        self._is_demo = False
         try:
             self.df_os = migrar_dados_servico(
                 caminho_os_antiga=self.os_antiga_path.text() or None,
@@ -755,7 +895,7 @@ class HospitalDashboard(QMainWindow):
         dialog = QDialog(self)
         dialog.setWindowTitle("Configurações de Análise")
         dialog.setMinimumWidth(440)
-        dialog.setMinimumHeight(520)
+        dialog.setMinimumHeight(640)
         dialog.setStyleSheet("QDialog { background-color: #060D18; } QLabel { color: #E2EDF8; }")
 
         lay = QVBoxLayout(dialog)
@@ -783,6 +923,53 @@ class HospitalDashboard(QMainWindow):
         div.setFrameShape(QFrame.HLine)
         div.setStyleSheet("border: none; background: #1A2D45; max-height: 1px;")
         lay.addWidget(div)
+
+        # ── Pesos do algoritmo de priorização ─────────────────────────
+        lbl_pesos = QLabel("PESOS DA PRIORIZAÇÃO DE SUBSTITUIÇÃO")
+        lbl_pesos.setStyleSheet("font-size: 10px; font-weight: bold; color: #3D5A78; letter-spacing: 1.5px;")
+        lay.addWidget(lbl_pesos)
+
+        lbl_pesos_hint = QLabel("Pontos máximos de cada critério no score de prioridade.")
+        lbl_pesos_hint.setStyleSheet("font-size: 11px; color: #5A8AB8;")
+        lay.addWidget(lbl_pesos_hint)
+
+        pesos_lay = QHBoxLayout()
+        pesos_lay.setSpacing(10)
+
+        def _mk_peso(label, valor):
+            box = QVBoxLayout()
+            box.setSpacing(3)
+            l = QLabel(label)
+            l.setStyleSheet("font-size: 12px; color: #C4D8EE; border: none;")
+            sp = QSpinBox()
+            sp.setRange(0, 100)
+            sp.setValue(valor)
+            sp.setFixedHeight(34)
+            box.addWidget(l)
+            box.addWidget(sp)
+            return box, sp
+
+        box_i, sp_idade = _mk_peso("Idade (≥ corte)", self._peso_idade)
+        box_c, sp_crit = _mk_peso("Criticidade", self._peso_criticidade)
+        box_k, sp_custo = _mk_peso("Custo de OS", self._peso_custo)
+        for b in (box_i, box_c, box_k):
+            pesos_lay.addLayout(b)
+        lay.addLayout(pesos_lay)
+
+        lbl_total = QLabel()
+        lbl_total.setStyleSheet("font-size: 11px; color: #5A8AB8;")
+        def _atualizar_total():
+            total = sp_idade.value() + sp_crit.value() + sp_custo.value()
+            lbl_total.setText(f"Score máximo possível: {total} pontos")
+        for sp in (sp_idade, sp_crit, sp_custo):
+            sp.valueChanged.connect(_atualizar_total)
+        _atualizar_total()
+        lay.addWidget(lbl_total)
+
+        div2 = QFrame()
+        div2.setFrameShape(QFrame.HLine)
+        div2.setStyleSheet("border: none; background: #1A2D45; max-height: 1px;")
+        lay.addWidget(div2)
 
         # ── Setores ───────────────────────────────────────────────────
         lbl_setores = QLabel("SETORES DA ANÁLISE")
@@ -847,8 +1034,20 @@ class HospitalDashboard(QMainWindow):
 
         if dialog.exec() == QDialog.Accepted:
             self._excluir_custo_zero = cb_excluir.isChecked()
+            self._peso_idade = sp_idade.value()
+            self._peso_criticidade = sp_crit.value()
+            self._peso_custo = sp_custo.value()
             self.selected_setores = [s for s, cb in checkboxes if cb.isChecked()]
             self.update_dashboard_data_filtered()
+
+    def _equip_os(self, equip):
+        """OS de um equipamento respeitando o filtro 'Excluir OS com custo = 0'
+        das Configurações. Usado por todos os componentes da aba Análise para
+        manter a reatividade consistente com os filtros."""
+        os_list = equip.get("os", [])
+        if self._excluir_custo_zero:
+            return [o for o in os_list if o.get("custo", 0) != 0]
+        return os_list
 
     def _build_os_cache(self):
         self._all_os_flat = [
@@ -866,6 +1065,7 @@ class HospitalDashboard(QMainWindow):
 
     def update_dashboard_data(self):
         self._build_os_cache()
+        self._update_loaded_files_label()
         all_setores = sorted(list(set(i.get("setor", "Desconhecido") for i in self.equipment_data)))
 
         pending = self._pending_filters
@@ -896,6 +1096,9 @@ class HospitalDashboard(QMainWindow):
             self.age_threshold.setValue(pending.get("age_threshold", 10))
             self.active_years = set(pending.get("active_years", list(range(2018, 2026))))
             self._excluir_custo_zero = pending.get("cb_excluir_custo_zero", False)
+            self._peso_idade = pending.get("peso_idade", 20)
+            self._peso_criticidade = pending.get("peso_criticidade", 50)
+            self._peso_custo = pending.get("peso_custo", 30)
             self.f_modelo.setText(pending.get("f_modelo", ""))
             idx = self.f_setor.findText(pending.get("f_setor", "Todos Setores"))
             if idx >= 0:
@@ -963,8 +1166,8 @@ class HospitalDashboard(QMainWindow):
         kpi_layout.setSpacing(24)
         
         total_equip = len(self.filtered_equipment_data)
-        total_os = sum(len(equip.get("os", [])) for equip in self.filtered_equipment_data)
-        total_cost = sum(os_data.get("custo", 0) for equip in self.filtered_equipment_data for os_data in equip.get("os", []))
+        total_os = sum(len(self._equip_os(equip)) for equip in self.filtered_equipment_data)
+        total_cost = sum(os_data.get("custo", 0) for equip in self.filtered_equipment_data for os_data in self._equip_os(equip))
 
         total_cost_str = f"R$ {total_cost:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
@@ -1008,7 +1211,7 @@ class HospitalDashboard(QMainWindow):
         layout.setSpacing(24)
 
         # ── Age Distribution card ─────────────────────────────────────
-        age_card, age_vbox = self._make_chart_card("Distribuição por Idade")
+        age_card, age_vbox = self._make_chart_card("Distribuição por Idade", export_key="idade")
 
         age_ctrl_row = QHBoxLayout()
         age_ctrl_row.addStretch()
@@ -1030,7 +1233,7 @@ class HospitalDashboard(QMainWindow):
         age_vbox.addWidget(self.age_donut_view)
 
         # ── Priorities card ───────────────────────────────────────────
-        top5_card, top5_vbox = self._make_chart_card("Prioridades de Substituição")
+        top5_card, top5_vbox = self._make_chart_card("Prioridades de Substituição", export_key="prioridades")
         self.top5_group = top5_card  # kept for eventFilter compat
 
         # Toggle inline, right-aligned, with proper sizing
@@ -1109,7 +1312,7 @@ class HospitalDashboard(QMainWindow):
         layout.setSpacing(24)
 
         # ── Esquerda: Custo por Setor (stretch 1) ────────────────────
-        sector_card, sector_layout = self._make_chart_card("Custo por Setor (Top 5)")
+        sector_card, sector_layout = self._make_chart_card("Custo por Setor (Top 5)", export_key="custo_setor")
         self.sector_chart_view = QChartView()
         self.sector_chart_view.setRenderHint(QPainter.Antialiasing)
         self.sector_chart_view.setStyleSheet("background: transparent;")
@@ -1118,7 +1321,7 @@ class HospitalDashboard(QMainWindow):
         layout.addWidget(sector_card, 1)
 
         # ── Direita: Histórico de Emissão de OS (stretch 2) ──────────
-        hist_card, chart_vbox = self._make_chart_card("Histórico de Emissão de OS")
+        hist_card, chart_vbox = self._make_chart_card("Histórico de Emissão de OS", export_key="historico_os")
         self.history_group = hist_card
 
         self.global_chart_view = CrosshairChartView()
@@ -1137,7 +1340,7 @@ class HospitalDashboard(QMainWindow):
         layout.setSpacing(24)
 
         # ── Esquerda: Evolução de Custo (stretch 1) ──────────────────
-        evol_card, evol_layout = self._make_chart_card("Evolução do Custo Total por Ano")
+        evol_card, evol_layout = self._make_chart_card("Evolução do Custo Total por Ano", export_key="evolucao_custo")
         self.cost_evol_chart_view = QChartView()
         self.cost_evol_chart_view.setRenderHint(QPainter.Antialiasing)
         self.cost_evol_chart_view.setStyleSheet("background: transparent;")
@@ -1146,7 +1349,7 @@ class HospitalDashboard(QMainWindow):
         layout.addWidget(evol_card, 1)
 
         # ── Direita: Top 10 Equipamentos (stretch 2) ─────────────────
-        top10_card, top10_layout = self._make_chart_card("Top 10 Equipamentos — Custo")
+        top10_card, top10_layout = self._make_chart_card("Top 10 Equipamentos — Custo", export_key="top10_custo")
         self.top10_chart_view = QChartView()
         self.top10_chart_view.setRenderHint(QPainter.Antialiasing)
         self.top10_chart_view.setStyleSheet("background: transparent;")
@@ -1167,7 +1370,7 @@ class HospitalDashboard(QMainWindow):
             modelo = equip["modelo"]
             setor = equip["setor"]
             e_cost = 0
-            for os in equip["os"]:
+            for os in self._equip_os(equip):
                 try:
                     year = datetime.strptime(os["data"], "%Y-%m-%d").year
                 except (ValueError, KeyError):
@@ -1210,9 +1413,15 @@ class HospitalDashboard(QMainWindow):
         chart_evol.legend().setVisible(False)
         self.cost_evol_chart_view.setChart(chart_evol)
 
+        self._set_chart_data("evolucao_custo", ["Ano", "Custo total (R$)"],
+                             [[y, round(cost_by_year[y], 2)] for y in years])
+
         # 2. Top 10 Equip — horizontal bars with click-to-detail
         top10_equip = sorted(equip_cost.items(), key=lambda x: x[1], reverse=True)[:10]
         top10_equip_reversed = list(reversed(top10_equip))
+
+        self._set_chart_data("top10_custo", ["Modelo", "Custo total (R$)"],
+                             [[m, round(c, 2)] for m, c in top10_equip])
 
         bar_set_top10 = QBarSet("Custo")
         bar_set_top10.setBrush(QColor("#1D4ED8"))
@@ -1261,16 +1470,18 @@ class HospitalDashboard(QMainWindow):
 
         # 3. Sector Cost
         top10_sectors = sorted(sector_cost.items(), key=lambda x: x[1], reverse=True)[:5]
+        self._set_chart_data("custo_setor", ["Setor", "Custo total (R$)"],
+                             [[s, round(c, 2)] for s, c in top10_sectors])
         series_sec = QPieSeries()
         series_sec.setHoleSize(0.4)
         colors = ["#60A5FA", "#34D399", "#FBBF24", "#F87171", "#A78BFA", "#F472B6", "#2DD4BF", "#FB923C", "#38BDF8", "#818CF8"]
-        
+
         for i, (sec, c) in enumerate(top10_sectors):
             slice_ = series_sec.append(sec, c)
             slice_.setBrush(QColor(colors[i % len(colors)]))
             slice_.setLabelVisible(True)
             slice_.setLabelColor(QColor("#4A6A8A"))
-            
+
         chart_sec = QChart()
         chart_sec.setAnimationOptions(QChart.SeriesAnimations)
         chart_sec.setBackgroundVisible(False)
@@ -1296,14 +1507,19 @@ class HospitalDashboard(QMainWindow):
         total = over + under
         pct_over = (over / total) * 100 if total else 0
         pct_under = (under / total) * 100 if total else 0
+
+        self._set_chart_data("idade", ["Faixa", "Equipamentos", "Percentual"],
+                             [[f"≥ {threshold} anos", over, f"{pct_over:.1f}%"],
+                              [f"< {threshold} anos", under, f"{pct_under:.1f}%"]])
+
         series = QPieSeries()
         series.setHoleSize(0.58)
         s1 = series.append(f"≥ {threshold} anos  ·  {over} equip. ({pct_over:.1f}%)", over)
-        s1.setBrush(QColor("#F97316"))
+        s1.setBrush(QColor("#EF4444"))  # vermelho = urgência (equipamentos mais antigos)
         s1.setExploded(True)
         s1.setExplodeDistanceFactor(0.07)
         s1.setLabelVisible(True)
-        s1.setLabelColor(QColor("#FB923C"))
+        s1.setLabelColor(QColor("#F87171"))
         s2 = series.append(f"< {threshold} anos  ·  {under} equip. ({pct_under:.1f}%)", under)
         s2.setBrush(QColor("#1E3A5F"))
         s2.setLabelVisible(True)
@@ -1318,24 +1534,26 @@ class HospitalDashboard(QMainWindow):
         chart.legend().setLabelColor(QColor("#C4D8EE"))
         self.age_donut_view.setChart(chart)
         
-        # Recalcula scores de TODOS os equipamentos (não só os filtrados) para evitar scores stale
-        all_data = self.equipment_data
+        # Recalcula scores aplicando o algoritmo de priorização sobre o dataframe
+        # JÁ FILTRADO pelos setores das Configurações: a normalização de custo
+        # passa a ser relativa ao maior custo dentro dos setores selecionados.
+        scored_data = self.filtered_equipment_data
         max_custo = 0
-        for eq in all_data:
-            tot = sum(o.get('custo', 0) for o in eq.get('os', []))
+        for eq in scored_data:
+            tot = sum(o.get('custo', 0) for o in self._equip_os(eq))
             if tot > max_custo: max_custo = tot
 
-        for eq in all_data:
+        for eq in scored_data:
             try:
                 anos = current_year - int(eq["data_aquisicao"].split("-")[0])
             except:
                 anos = 0
-            idade_pts = 20 if anos >= threshold else 0
-            crit_pts = (eq.get('criticidade', 1) / 3.0) * 50
-            tot = sum(o.get('custo', 0) for o in eq.get('os', []))
-            custo_pts = (tot / max_custo * 30) if max_custo > 0 else 0
+            idade_pts = self._peso_idade if anos >= threshold else 0
+            crit_pts = (eq.get('criticidade', 1) / 3.0) * self._peso_criticidade
+            tot = sum(o.get('custo', 0) for o in self._equip_os(eq))
+            custo_pts = (tot / max_custo * self._peso_custo) if max_custo > 0 else 0
             eq['score'] = idade_pts + crit_pts + custo_pts
-            
+
         self.populate_top5()
 
     def handle_year_legend_click(self):
@@ -1361,7 +1579,10 @@ class HospitalDashboard(QMainWindow):
         year_data = {y: {m: 0 for m in range(1, 13)} for y in all_years}
         for equip in self.filtered_equipment_data:
             for os in equip["os"]:
-                dt = datetime.strptime(os["data"], "%Y-%m-%d").date()
+                try:
+                    dt = datetime.strptime(os["data"], "%Y-%m-%d").date()
+                except (ValueError, KeyError):
+                    continue  # OS sem data válida não entra no histórico temporal
                 if dt.year in all_years:
                     if not (self._excluir_custo_zero and os.get("custo", 0) == 0):
                         year_data[dt.year][dt.month] += 1
@@ -1392,7 +1613,20 @@ class HospitalDashboard(QMainWindow):
             chart.addSeries(series); series.attachAxis(axis_x)
             if year not in self.active_years:
                 series.setVisible(False)
-        
+
+        meses_nomes = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"]
+        n_ativos = len(self.active_years)
+        hist_rows = []
+        for month in range(1, 13):
+            linha = [meses_nomes[month - 1]] + [year_data[y][month] for y in all_years]
+            linha.append(round(averages[month] / n_ativos, 2) if n_ativos else 0)
+            hist_rows.append(linha)
+        self._set_chart_data(
+            "historico_os",
+            ["Mês"] + [str(y) for y in all_years] + ["Média (anos ativos)"],
+            hist_rows,
+        )
+
         if self.active_years:
             avg_series = QLineSeries(); avg_series.setName("Média")
             avg_series.setColor(QColor("#C4D8EE")); avg_series.setPointsVisible(True)
@@ -1436,7 +1670,11 @@ class HospitalDashboard(QMainWindow):
 
     def populate_top5(self):
         sorted_items = sorted(self.filtered_equipment_data, key=lambda x: x["score"], reverse=True)[:5]
-        
+
+        self._set_chart_data("prioridades", ["Posição", "Modelo", "Score", "Identificador"],
+                             [[i + 1, it["modelo"], round(it["score"], 1), it.get("identificador", "N/A")]
+                              for i, it in enumerate(sorted_items)])
+
         # Update Table
         self.top5_table_view.setRowCount(len(sorted_items))
         for r, item in enumerate(sorted_items):
@@ -1471,7 +1709,8 @@ class HospitalDashboard(QMainWindow):
 
         axis_x = QValueAxis()
         axis_x.setLabelsColor(QColor("#4A6A8A"))
-        axis_x.setRange(0, 100)
+        score_max = self._peso_idade + self._peso_criticidade + self._peso_custo
+        axis_x.setRange(0, score_max if score_max > 0 else 100)
         axis_x.setLabelFormat("%.0f")
         chart.addAxis(axis_x, Qt.AlignBottom)
         series.attachAxis(axis_x)
@@ -2113,12 +2352,12 @@ class HospitalDashboard(QMainWindow):
         # Hero card
         hero = QFrame()
         hero.setStyleSheet("""
-            QFrame { background: qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 #0A1628,stop:1 #060D18);
+            QFrame { background: #0A1628;
                      border: 1px solid #1A2D45; border-radius: 14px; }
         """)
         top_bar = QFrame()
         top_bar.setFixedHeight(4)
-        top_bar.setStyleSheet("background: qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 #1D4ED8,stop:1 #06B6D4); border-radius: 14px 14px 0 0; border: none;")
+        top_bar.setStyleSheet("background: #1D4ED8; border-radius: 14px 14px 0 0; border: none;")
         hero_inner = QHBoxLayout()
         hero_inner.setContentsMargins(32, 24, 32, 28)
         hero_text = QVBoxLayout()
@@ -2133,9 +2372,9 @@ class HospitalDashboard(QMainWindow):
         btn_nova = QPushButton("＋  Nova Análise")
         btn_nova.setFixedSize(190, 48)
         btn_nova.setStyleSheet("""
-            QPushButton { background: qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 #1D4ED8,stop:1 #0E7490);
+            QPushButton { background: #1D4ED8;
                           color: white; border-radius: 8px; font-size: 14px; font-weight: 700; border: none; }
-            QPushButton:hover { background: qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 #2563EB,stop:1 #0891B2); }
+            QPushButton:hover { background: #2563EB; }
         """)
         btn_nova.clicked.connect(lambda: self.root_stack.setCurrentIndex(1))
         hero_inner.addWidget(btn_nova, 0, Qt.AlignRight | Qt.AlignVCenter)
@@ -2233,24 +2472,26 @@ class HospitalDashboard(QMainWindow):
 
         lay.addLayout(info_lay, 1)
 
-        btn_play = QPushButton("▶")
+        btn_play = QPushButton()
         btn_play.setFixedSize(40, 40)
         btn_play.setToolTip("Carregar análise")
+        btn_play.setIcon(QIcon(self._action_icon("play", 18, "#60A5FA")))
+        btn_play.setIconSize(QSize(18, 18))
         btn_play.setStyleSheet("""
-            QPushButton { background: #1D4ED8; color: white; border-radius: 20px;
-                          font-size: 14px; font-weight: bold; border: none; }
-            QPushButton:hover { background: #2563EB; }
+            QPushButton { background: #0D1E35; border: 1px solid #1E3A5F; border-radius: 20px; }
+            QPushButton:hover { background: #1D4ED8; border-color: #1D4ED8; }
         """)
         btn_play.clicked.connect(lambda checked, a=analysis: self.load_saved_analysis(a))
         lay.addWidget(btn_play)
 
-        btn_del = QPushButton("🗑")
+        btn_del = QPushButton()
         btn_del.setFixedSize(40, 40)
         btn_del.setToolTip("Excluir análise")
+        btn_del.setIcon(QIcon(self._action_icon("close", 18, "#7E9BB8")))
+        btn_del.setIconSize(QSize(18, 18))
         btn_del.setStyleSheet("""
-            QPushButton { background: #0D1E35; color: #5A8AB8; border-radius: 20px;
-                          font-size: 14px; border: none; border: 1px solid #1A2D45; }
-            QPushButton:hover { background: #EF4444; color: white; border-color: #EF4444; }
+            QPushButton { background: #0D1E35; border: 1px solid #1E3A5F; border-radius: 20px; }
+            QPushButton:hover { background: #EF4444; border-color: #EF4444; }
         """)
         btn_del.clicked.connect(lambda checked, a=analysis: self.delete_saved_analysis(a))
         lay.addWidget(btn_del)
@@ -2322,6 +2563,9 @@ class HospitalDashboard(QMainWindow):
                 "age_threshold": self.age_threshold.value(),
                 "active_years": list(self.active_years),
                 "cb_excluir_custo_zero": self._excluir_custo_zero,
+                "peso_idade": self._peso_idade,
+                "peso_criticidade": self._peso_criticidade,
+                "peso_custo": self._peso_custo,
                 "f_modelo": self.f_modelo.text(),
                 "f_setor": self.f_setor.currentText(),
                 "eq_setores_filter": list(getattr(self, '_eq_setores_filter', [])),
